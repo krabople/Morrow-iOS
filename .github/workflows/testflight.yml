@@ -1,0 +1,97 @@
+name: Build and upload Morrow to TestFlight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: morrow-testflight
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      TEAM_ID: 6YYA8L76Y8
+      APP_BUNDLE_ID: com.krabople.morrow
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Verify Apple toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          echo "iPhoneOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Validate release secrets
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          for name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD APPSTORE_ISSUER_ID APPSTORE_KEY_ID APPSTORE_PRIVATE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required GitHub Actions secret: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Import Apple distribution certificate
+        uses: Apple-Actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.P12_PASSWORD }}
+
+      - name: Download App Store provisioning profile
+        uses: Apple-Actions/download-provisioning-profiles@v6
+        with:
+          bundle-id: ${{ env.APP_BUNDLE_ID }}
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+
+      - name: Archive and export signed IPA
+        id: build
+        uses: Apple-Actions/xcodebuild@v1
+        with:
+          project: Morrow.xcodeproj
+          scheme: Morrow
+          configuration: Release
+          sdk: iphoneos
+          destination: generic/platform=iOS
+          action: archive
+          archive-path: .build/Archives/Morrow.xcarchive
+          export-options-plist: Support/ExportOptions.plist
+          export-path: .build/Export
+          build-number: ${{ github.run_number }}
+
+      - name: Keep signed IPA as a workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Morrow-TestFlight-IPA
+          path: ${{ steps.build.outputs.ipa-path }}
+          if-no-files-found: error
+
+      - name: Upload to TestFlight
+        uses: Apple-Actions/upload-testflight-build@v5
+        with:
+          app-path: ${{ steps.build.outputs.ipa-path }}
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          wait-for-processing: "true"
