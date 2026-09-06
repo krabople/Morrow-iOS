@@ -39,7 +39,7 @@ struct ProjectsSidebar: View {
             ScrollView {
                 LazyVStack(spacing: 8) {
                     selectionRow(
-                        title: "All Tasks",
+                        title: L10n.text("All Tasks"),
                         systemImage: "tray.full.fill",
                         color: .listelloTeal,
                         count: store.activeTasks.count,
@@ -82,7 +82,7 @@ struct ProjectsSidebar: View {
             ProjectEditorView(project: project, isNew: false, onSave: store.saveProject)
         }
         .confirmationDialog(
-            "Delete \(projectToDelete?.name ?? "this project")?",
+            L10n.format("delete_project_named", projectToDelete?.name ?? L10n.text("this project")),
             isPresented: Binding(
                 get: { projectToDelete != nil },
                 set: { if !$0 { projectToDelete = nil } }

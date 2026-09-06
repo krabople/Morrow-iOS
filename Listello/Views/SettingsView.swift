@@ -11,8 +11,8 @@ struct SettingsView: View {
 
                 VStack(spacing: 10) {
                     ListelloHeader(
-                        title: "Settings",
-                        subtitle: "Make Listello work the way you do"
+                        title: L10n.text("Settings"),
+                        subtitle: L10n.text("Make Listello work the way you do")
                     )
                     .padding(.horizontal)
 
@@ -129,9 +129,6 @@ struct SettingsView: View {
     }
 
     private func durationLabel(_ minutes: Int) -> String {
-        if minutes < 60 { return "\(minutes) minutes" }
-        let hours = minutes / 60
-        let remainder = minutes % 60
-        return remainder == 0 ? "\(hours)h" : "\(hours)h \(remainder)m"
+        L10n.duration(minutes)
     }
 }

@@ -49,7 +49,7 @@ struct DurationOptionsView: View {
                             Image(systemName: "trash")
                         }
                         .disabled(store.preferences.durationOptions.count == 1)
-                        .accessibilityLabel("Remove \(durationLabel(minutes))")
+                        .accessibilityLabel(L10n.format("remove_duration", durationLabel(minutes)))
                     }
                 }
             }
@@ -92,10 +92,6 @@ struct DurationOptionsView: View {
     }
 
     private func durationLabel(_ minutes: Int) -> String {
-        if minutes < 60 { return "\(minutes) minutes" }
-        let hours = minutes / 60
-        let remainder = minutes % 60
-        if remainder == 0 { return hours == 1 ? "1 hour" : "\(hours) hours" }
-        return "\(hours)h \(remainder)m"
+        L10n.duration(minutes)
     }
 }

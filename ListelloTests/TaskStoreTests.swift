@@ -193,3 +193,76 @@ final class TaskStoreTests: XCTestCase {
         TaskStore(storageURL: storageURL, calendar: calendar, managesNotifications: false)
     }
 }
+
+final class LocalizationTests: XCTestCase {
+    private let completeLocalizations = [
+        "ar", "de", "en", "es", "fr", "hi", "id", "it", "ja", "ko",
+        "nl", "pl", "pt-BR", "ru", "th", "tr", "uk", "vi", "zh-Hans", "zh-Hant"
+    ]
+
+    func testEverySupportedLanguageHasEveryAppString() throws {
+        let resources = repositoryRoot.appendingPathComponent("Listello/Resources", isDirectory: true)
+        let english = try stringsDictionary(at: resources.appendingPathComponent("en.lproj/Localizable.strings"))
+        XCTAssertGreaterThan(english.count, 150)
+
+        for locale in completeLocalizations {
+            let translations = try stringsDictionary(
+                at: resources.appendingPathComponent("\(locale).lproj/Localizable.strings")
+            )
+            XCTAssertEqual(
+                Set(translations.keys),
+                Set(english.keys),
+                "\(locale) must contain the complete Listello string set"
+            )
+
+            let info = try stringsDictionary(
+                at: resources.appendingPathComponent("\(locale).lproj/InfoPlist.strings")
+            )
+            XCTAssertNotNil(info["CFBundleDisplayName"])
+            XCTAssertNotNil(info["NSCalendarsFullAccessUsageDescription"])
+            XCTAssertNotNil(info["NSUserNotificationsUsageDescription"])
+        }
+    }
+
+    func testDynamicTranslationPlaceholdersArePreserved() throws {
+        let resources = repositoryRoot.appendingPathComponent("Listello/Resources", isDirectory: true)
+        let english = try stringsDictionary(at: resources.appendingPathComponent("en.lproj/Localizable.strings"))
+        let dynamicKeys = [
+            "add_to_project", "archived_on", "calendar_name", "delete_project_named",
+            "duration_minutes", "keep_time", "one_open_task_in_project",
+            "open_tasks_in_project", "remove_duration", "schedule_conflict_message",
+            "to_time", "today_at_time", "tomorrow_at_time", "use_time"
+        ]
+
+        for locale in completeLocalizations {
+            let translations = try stringsDictionary(
+                at: resources.appendingPathComponent("\(locale).lproj/Localizable.strings")
+            )
+            for key in dynamicKeys {
+                XCTAssertEqual(
+                    placeholderCount(in: translations[key] ?? ""),
+                    placeholderCount(in: english[key] ?? ""),
+                    "\(locale) must preserve the format placeholder for \(key)"
+                )
+            }
+        }
+    }
+
+    private var repositoryRoot: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+    }
+
+    private func stringsDictionary(at url: URL) throws -> [String: String] {
+        let data = try Data(contentsOf: url)
+        var format = PropertyListSerialization.PropertyListFormat.openStep
+        let object = try PropertyListSerialization.propertyList(from: data, options: [], format: &format)
+        return try XCTUnwrap(object as? [String: String], "Invalid strings file: \(url.path)")
+    }
+
+    private func placeholderCount(in value: String) -> Int {
+        value.components(separatedBy: "%@").count - 1
+            + value.components(separatedBy: "%d").count - 1
+    }
+}

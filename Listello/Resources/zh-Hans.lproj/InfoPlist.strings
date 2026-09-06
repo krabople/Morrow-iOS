@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Listello";
+"NSCalendarsFullAccessUsageDescription" = "Listello 仅在你选择显示或导出日历日程时访问日历。";
+"NSUserNotificationsUsageDescription" = "Listello 仅针对你选择的任务和日期发送通知。";

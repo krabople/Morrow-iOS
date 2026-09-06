@@ -181,7 +181,7 @@ struct ScheduleView: View {
                 Text(task.scheduledAt?.formatted(date: .omitted, time: .shortened) ?? "")
                     .font(.subheadline.monospacedDigit().weight(.bold))
                 if let end = taskEnd(task) {
-                    Text("to \(end.formatted(date: .omitted, time: .shortened))")
+                    Text(L10n.format("to_time", end.formatted(date: .omitted, time: .shortened)))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -262,8 +262,8 @@ struct ScheduleView: View {
     }
 
     private var dayTitle: String {
-        if Calendar.current.isDateInToday(selectedDay) { return "Today" }
-        if Calendar.current.isDateInTomorrow(selectedDay) { return "Tomorrow" }
+        if Calendar.current.isDateInToday(selectedDay) { return L10n.text("Today") }
+        if Calendar.current.isDateInTomorrow(selectedDay) { return L10n.text("Tomorrow") }
         return selectedDay.formatted(.dateTime.day().month(.abbreviated))
     }
 
@@ -382,10 +382,10 @@ private struct CalendarEntryRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.isAllDay ? "All day" : entry.startDate.formatted(date: .omitted, time: .shortened))
+                Text(entry.isAllDay ? L10n.text("All day") : entry.startDate.formatted(date: .omitted, time: .shortened))
                     .font(.subheadline.monospacedDigit().weight(.bold))
                 if !entry.isAllDay {
-                    Text("to \(entry.endDate.formatted(date: .omitted, time: .shortened))")
+                    Text(L10n.format("to_time", entry.endDate.formatted(date: .omitted, time: .shortened)))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -397,7 +397,7 @@ private struct CalendarEntryRow: View {
                 Text(entry.title)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.listelloInk)
-                Label("Calendar · \(entry.calendarTitle)", systemImage: "calendar")
+                Label(L10n.format("calendar_name", entry.calendarTitle), systemImage: "calendar")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color(hex: entry.colorHex))
             }

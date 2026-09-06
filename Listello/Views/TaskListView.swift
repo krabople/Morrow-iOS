@@ -32,7 +32,7 @@ struct TaskListView: View {
 
                     Picker("Tasks", selection: $mode) {
                         ForEach(TaskListMode.allCases) { option in
-                            Text(option.rawValue).tag(option)
+                            Text(option.title).tag(option)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -138,7 +138,7 @@ struct TaskListView: View {
                     Button {
                         completeTask(task)
                     } label: {
-                        Label(task.isCompleted ? "Restore" : "Done", systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark")
+                        Label(L10n.text(task.isCompleted ? "Restore" : "Done"), systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark")
                     }
                     .tint(.listelloTeal)
                 }
@@ -167,9 +167,9 @@ struct TaskListView: View {
         .overlay {
             if visibleTasks.isEmpty {
                 ContentUnavailableView(
-                    query.isEmpty ? emptyTitle : "No Matches",
+                    query.isEmpty ? emptyTitle : L10n.text("No Matches"),
                     systemImage: mode == .active ? "checkmark.circle" : "archivebox",
-                    description: Text(query.isEmpty ? emptyMessage : "Try a different search.")
+                    description: Text(query.isEmpty ? emptyMessage : L10n.text("Try a different search."))
                 )
             }
         }
@@ -177,7 +177,12 @@ struct TaskListView: View {
 
     private var quickAddBar: some View {
         HStack(spacing: 10) {
-            TextField(selectedProject == nil ? "Add a task" : "Add to \(selectedProject?.name ?? "project")", text: $newTaskTitle)
+            TextField(
+                selectedProject == nil
+                    ? L10n.text("Add a task")
+                    : L10n.format("add_to_project", selectedProject?.name ?? L10n.text("project")),
+                text: $newTaskTitle
+            )
                 .textInputAutocapitalization(.sentences)
                 .submitLabel(.done)
                 .onSubmit(addTask)
@@ -199,15 +204,15 @@ struct TaskListView: View {
     }
 
     private var headerTitle: String {
-        selectedProject?.name ?? "Listello"
+        selectedProject?.name ?? L10n.text("Listello")
     }
 
     private var headerSubtitle: String {
         if let selectedProject {
             let count = store.activeTasks.filter { $0.projectID == selectedProject.id }.count
-            return "\(count) open \(count == 1 ? "task" : "tasks") in this project"
+            return L10n.format(count == 1 ? "one_open_task_in_project" : "open_tasks_in_project", count)
         }
-        return "Plan simply. Get things done."
+        return L10n.text("Plan simply. Get things done.")
     }
 
     private var quickAddColor: Color {
@@ -215,14 +220,14 @@ struct TaskListView: View {
     }
 
     private var emptyTitle: String {
-        mode == .active ? "Nothing to do" : "Nothing completed yet"
+        L10n.text(mode == .active ? "Nothing to do" : "Nothing completed yet")
     }
 
     private var emptyMessage: String {
         if mode == .active, selectedProject != nil {
-            return "Add the first task for this project below."
+            return L10n.text("Add the first task for this project below.")
         }
-        return mode == .active ? "Add a task below. Scheduling is always optional." : "Completed tasks will appear here."
+        return L10n.text(mode == .active ? "Add a task below. Scheduling is always optional." : "Completed tasks will appear here.")
     }
 
     private func addTask() {

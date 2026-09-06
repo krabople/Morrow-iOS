@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Listello";
+"NSCalendarsFullAccessUsageDescription" = "Listello는 사용자가 캘린더 일정을 표시하거나 내보낼 때만 캘린더에 접근합니다.";
+"NSUserNotificationsUsageDescription" = "Listello는 사용자가 선택한 할 일과 날짜에 대해서만 알림을 보냅니다.";

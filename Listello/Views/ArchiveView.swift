@@ -28,9 +28,9 @@ struct ArchiveView: View {
             .overlay {
                 if visibleTasks.isEmpty {
                     ContentUnavailableView(
-                        query.isEmpty ? "Archive is empty" : "No Matches",
+                        query.isEmpty ? L10n.text("Archive is empty") : L10n.text("No Matches"),
                         systemImage: "archivebox",
-                        description: Text(query.isEmpty ? "Archived tasks will be kept here." : "Try a different search.")
+                        description: Text(L10n.text(query.isEmpty ? "Archived tasks will be kept here." : "Try a different search."))
                     )
                 }
             }
@@ -108,7 +108,7 @@ struct ArchiveView: View {
             .font(.caption2.weight(.semibold))
 
             if let archivedAt = task.archivedAt {
-                Text("Archived \(archivedAt.formatted(date: .abbreviated, time: .omitted))")
+                Text(L10n.format("archived_on", archivedAt.formatted(date: .abbreviated, time: .omitted)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -41,7 +41,7 @@ final class CalendarService: ObservableObject {
             .map { event in
                 CalendarEntry(
                     id: event.eventIdentifier ?? event.calendarItemIdentifier,
-                    title: event.title?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? "Calendar event",
+                    title: event.title?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? L10n.text("Calendar event"),
                     notes: event.notes ?? "",
                     startDate: event.startDate,
                     endDate: max(event.endDate, event.startDate.addingTimeInterval(60)),
@@ -63,7 +63,8 @@ final class CalendarService: ObservableObject {
         let event = EKEvent(eventStore: eventStore)
         event.calendar = calendar
         event.title = task.title
-        event.notes = task.notes.isEmpty ? "Added from Listello" : "\(task.notes)\n\nAdded from Listello"
+        let sourceNote = L10n.text("Added from Listello")
+        event.notes = task.notes.isEmpty ? sourceNote : "\(task.notes)\n\n\(sourceNote)"
         event.startDate = startDate
         event.endDate = startDate.addingTimeInterval(TimeInterval(task.effectiveDurationMinutes * 60))
 

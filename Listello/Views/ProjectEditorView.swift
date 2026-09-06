@@ -44,13 +44,13 @@ struct ProjectEditorView: View {
                                     }
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(color.rawValue.capitalized)
+                            .accessibilityLabel(L10n.text("colour_\(color.rawValue)"))
                         }
                     }
                     .padding(.vertical, 6)
                 }
             }
-            .navigationTitle(isNew ? "New Project" : "Edit Project")
+            .navigationTitle(L10n.text(isNew ? "New Project" : "Edit Project"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

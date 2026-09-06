@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Listello";
+"NSCalendarsFullAccessUsageDescription" = "Listello takvime yalnızca etkinlikleri göstermeyi veya dışa aktarmayı seçtiğinizde erişir.";
+"NSUserNotificationsUsageDescription" = "Listello yalnızca seçtiğiniz görevler ve günler için bildirim gönderir.";

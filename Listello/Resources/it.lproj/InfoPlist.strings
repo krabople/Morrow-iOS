@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Listello";
+"NSCalendarsFullAccessUsageDescription" = "Listello accede al calendario solo quando scegli di mostrare o esportare eventi.";
+"NSUserNotificationsUsageDescription" = "Listello invia notifiche solo per le attività e i giorni che scegli.";

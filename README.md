@@ -20,6 +20,7 @@ Listello is a colourful, deliberately simple task and schedule app built nativel
 - Archive, search, restore or permanently delete old tasks
 - Automatically archive completed tasks after a chosen period
 - Use the system appearance, light mode or dark mode
+- Follow the device language across 20 major localisations, including translated permission prompts and right-to-left Arabic
 - Store everything privately on the device
 
 Scheduling, projects, calendar access and notifications are all optional. There are no accounts, dashboards, habits, points, subscriptions or setup screens.

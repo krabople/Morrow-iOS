@@ -139,6 +139,8 @@ enum TaskListMode: String, CaseIterable, Identifiable {
     case completed = "Done"
 
     var id: Self { self }
+
+    var title: String { L10n.text(rawValue) }
 }
 
 enum RecurrenceRule: String, CaseIterable, Codable, Identifiable {
@@ -154,13 +156,13 @@ enum RecurrenceRule: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .none: "Does not repeat"
-        case .daily: "Every day"
-        case .weekdays: "Weekdays"
-        case .weekly: "Every week"
-        case .fortnightly: "Every fortnight"
-        case .monthly: "Every month"
-        case .yearly: "Every year"
+        case .none: L10n.text("Does not repeat")
+        case .daily: L10n.text("Every day")
+        case .weekdays: L10n.text("Weekdays")
+        case .weekly: L10n.text("Every week")
+        case .fortnightly: L10n.text("Every fortnight")
+        case .monthly: L10n.text("Every month")
+        case .yearly: L10n.text("Every year")
         }
     }
 
@@ -200,9 +202,9 @@ enum AppearancePreference: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
+        case .system: L10n.text("System")
+        case .light: L10n.text("Light")
+        case .dark: L10n.text("Dark")
         }
     }
 }

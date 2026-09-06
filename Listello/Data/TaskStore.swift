@@ -623,7 +623,7 @@ final class TaskStore: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = task.title
-            content.body = task.notes.isEmpty ? "Scheduled for now" : task.notes
+            content.body = task.notes.isEmpty ? L10n.text("Scheduled for now") : task.notes
             content.sound = .default
 
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: scheduledAt)

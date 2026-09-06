@@ -115,7 +115,7 @@ struct TaskEditorView: View {
             }
             .scrollContentBackground(.hidden)
             .background(ListelloBackground())
-            .navigationTitle(isNew ? "New Task" : "Task")
+            .navigationTitle(L10n.text(isNew ? "New Task" : "Task"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -130,22 +130,22 @@ struct TaskEditorView: View {
             }
             .confirmationDialog("This time overlaps", isPresented: conflictPresented, titleVisibility: .visible) {
                 if let conflict = scheduleConflict {
-                    Button("Use \(conflict.suggestedStart.formatted(date: .abbreviated, time: .shortened))") {
+                    Button(L10n.format("use_time", conflict.suggestedStart.formatted(date: .abbreviated, time: .shortened))) {
                         draft.scheduledAt = conflict.suggestedStart
                         saveDirectly()
                     }
-                    Button("Keep \(conflict.chosenStart.formatted(date: .omitted, time: .shortened))") {
+                    Button(L10n.format("keep_time", conflict.chosenStart.formatted(date: .omitted, time: .shortened))) {
                         saveDirectly()
                     }
                     Button("Cancel", role: .cancel) { scheduleConflict = nil }
                 }
             } message: {
                 if let conflict = scheduleConflict {
-                    Text("It clashes with “\(conflict.conflictingTitle)”. Listello found the next free time, but you can keep your original choice.")
+                    Text(L10n.format("schedule_conflict_message", conflict.conflictingTitle))
                 }
             }
             .confirmationDialog(
-                originalTask.isRecurring ? "Delete recurring task?" : "Delete this task?",
+                L10n.text(originalTask.isRecurring ? "Delete recurring task?" : "Delete this task?"),
                 isPresented: $showsDeleteConfirmation,
                 titleVisibility: .visible
             ) {
@@ -218,12 +218,8 @@ struct TaskEditorView: View {
     }
 
     private func durationLabel(_ minutes: Int?) -> String {
-        guard let minutes else { return "No estimate" }
-        if minutes < 60 { return "\(minutes) minutes" }
-        let hours = minutes / 60
-        let remainder = minutes % 60
-        if remainder == 0 { return hours == 1 ? "1 hour" : "\(hours) hours" }
-        return "\(hours)h \(remainder)m"
+        guard let minutes else { return L10n.text("No estimate") }
+        return L10n.duration(minutes)
     }
 
     private var durationOptions: [Int?] {
@@ -236,8 +232,8 @@ struct TaskEditorView: View {
     }
 
     private var calendarButtonTitle: String {
-        if draft.isRecurring { return "Add This Occurrence to Calendar" }
-        return draft.calendarEventIdentifier == nil ? "Add to Calendar" : "Add Another Calendar Event"
+        if draft.isRecurring { return L10n.text("Add This Occurrence to Calendar") }
+        return L10n.text(draft.calendarEventIdentifier == nil ? "Add to Calendar" : "Add Another Calendar Event")
     }
 
     private func checkAndSave() {
@@ -274,12 +270,12 @@ struct TaskEditorView: View {
     private func exportToCalendar() {
         Task {
             guard let identifier = await calendarService.export(draft) else {
-                calendarMessage = "Calendar access is needed, or no writable calendar is available. You can change access in iPhone Settings."
+                calendarMessage = L10n.text("Calendar access is needed, or no writable calendar is available. You can change access in iPhone Settings.")
                 return
             }
             draft.calendarEventIdentifier = identifier
             await store.saveTask(draft)
-            calendarMessage = "Added to Apple Calendar."
+            calendarMessage = L10n.text("Added to Apple Calendar.")
         }
     }
 
