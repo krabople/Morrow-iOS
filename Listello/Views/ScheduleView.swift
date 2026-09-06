@@ -7,11 +7,11 @@ struct ScheduleView: View {
     @AppStorage("showsCalendarEvents") private var showsCalendarEvents = false
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
     @State private var showsCalendar = false
-    @State private var showsCalendarImport = false
     @State private var permissionDenied = false
     @State private var calendarEntries: [CalendarEntry] = []
     @State private var editingTask: TaskItem?
     @State private var newTask: TaskItem?
+    @State private var taskPendingDeletion: TaskItem?
 
     private var scheduledTasks: [TaskItem] {
         store.tasks(on: selectedDay)
@@ -103,11 +103,6 @@ struct ScheduleView: View {
                         Toggle(isOn: calendarOverlayBinding) {
                             Label("Show Calendar Events", systemImage: "calendar")
                         }
-                        Button {
-                            showsCalendarImport = true
-                        } label: {
-                            Label("Import from Calendar", systemImage: "square.and.arrow.down")
-                        }
                     } label: {
                         Image(systemName: "calendar.circle")
                     }
@@ -117,7 +112,8 @@ struct ScheduleView: View {
                         newTask = TaskItem(
                             title: "",
                             scheduledAt: store.suggestedScheduleTime(on: selectedDay),
-                            expectedDurationMinutes: 30
+                            expectedDurationMinutes: store.preferences.defaultDurationMinutes,
+                            notifiesAtScheduledTime: store.preferences.notifyNewScheduledTasks
                         )
                     } label: {
                         Image(systemName: "plus.circle.fill")
@@ -146,13 +142,32 @@ struct ScheduleView: View {
             .sheet(item: $newTask) { task in
                 TaskEditorView(task: task, isNew: true)
             }
-            .sheet(isPresented: $showsCalendarImport, onDismiss: refreshCalendarEntries) {
-                CalendarImportView(selectedDay: selectedDay)
-            }
             .alert("Calendar Access Needed", isPresented: $permissionDenied) {
                 Button("OK", role: .cancel) { }
             } message: {
-                Text("Allow full Calendar access for Listello in iPhone Settings to show or import events.")
+                Text("Allow full Calendar access for Listello in iPhone Settings to show events.")
+            }
+            .confirmationDialog(
+                "Delete recurring task?",
+                isPresented: Binding(
+                    get: { taskPendingDeletion != nil },
+                    set: { if !$0 { taskPendingDeletion = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let task = taskPendingDeletion {
+                    Button("Delete This Occurrence", role: .destructive) {
+                        deleteOccurrence(task)
+                        taskPendingDeletion = nil
+                    }
+                    Button("Delete All Future Occurrences", role: .destructive) {
+                        deleteSeries(task)
+                        taskPendingDeletion = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) { taskPendingDeletion = nil }
+            } message: {
+                Text("Keep the series going, or remove the recurring task completely.")
             }
             .task(id: calendarRefreshKey) {
                 await loadCalendarEntries()
@@ -180,7 +195,7 @@ struct ScheduleView: View {
                 project: store.project(withID: task.projectID),
                 showsScheduleLabel: false
             ) {
-                withAnimation { store.toggleCompleted(task) }
+                completeTask(task)
             }
         }
         .onTapGesture { editingTask = task }
@@ -189,15 +204,26 @@ struct ScheduleView: View {
         .listRowBackground(Color.clear)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button {
-                withAnimation { store.toggleCompleted(task) }
+                completeTask(task)
             } label: {
                 Label("Done", systemImage: "checkmark")
             }
             .tint(.listelloTeal)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                withAnimation { store.archiveTask(task) }
+            } label: {
+                Label("Archive", systemImage: "archivebox")
+            }
+            .tint(.listelloViolet)
+
             Button(role: .destructive) {
-                withAnimation { store.deleteTask(task) }
+                if task.isRecurring {
+                    taskPendingDeletion = task
+                } else {
+                    deleteTask(task)
+                }
             } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -296,10 +322,39 @@ struct ScheduleView: View {
         calendarEntries = await calendarService.entries(on: selectedDay, requestAccess: false)
     }
 
-    private func refreshCalendarEntries() {
-        guard showsCalendarEvents else { return }
-        Task { await loadCalendarEntries() }
+    private func completeTask(_ task: TaskItem) {
+        Task {
+            _ = await calendarService.deleteEvent(for: task)
+            withAnimation { store.toggleCompleted(task) }
+            await loadCalendarEntries()
+        }
     }
+
+    private func deleteTask(_ task: TaskItem) {
+        Task {
+            _ = await calendarService.deleteEvent(for: task)
+            withAnimation { store.deleteTask(task) }
+            await loadCalendarEntries()
+        }
+    }
+
+    private func deleteOccurrence(_ task: TaskItem) {
+        Task {
+            _ = await calendarService.deleteEvent(for: task)
+            withAnimation { store.deleteRecurringOccurrence(task) }
+            await loadCalendarEntries()
+        }
+    }
+
+    private func deleteSeries(_ task: TaskItem) {
+        let storedTask = store.task(withID: task.id) ?? task
+        Task {
+            _ = await calendarService.deleteEvent(for: storedTask)
+            withAnimation { store.deleteTask(task) }
+            await loadCalendarEntries()
+        }
+    }
+
 }
 
 private enum ScheduleItem: Identifiable {

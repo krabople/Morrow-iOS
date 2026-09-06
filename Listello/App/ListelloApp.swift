@@ -11,6 +11,7 @@ struct ListelloApp: App {
                 .environmentObject(store)
                 .environmentObject(calendarService)
                 .tint(.listelloTeal)
+                .preferredColorScheme(store.preferences.appearance.colorScheme)
         }
     }
 }

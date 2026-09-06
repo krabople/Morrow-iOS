@@ -12,12 +12,12 @@ struct TaskEditorView: View {
     @State private var calendarMessage: String?
 
     let isNew: Bool
-
-    private let durationOptions: [Int?] = [nil, 15, 30, 45, 60, 90, 120, 180, 240]
+    private let originalTask: TaskItem
 
     init(task: TaskItem, isNew: Bool) {
         _draft = State(initialValue: task)
         self.isNew = isNew
+        self.originalTask = task
     }
 
     var body: some View {
@@ -67,6 +67,18 @@ struct TaskEditorView: View {
                         }
 
                         Toggle("Notify me at this time", isOn: $draft.notifiesAtScheduledTime)
+
+                        Picker("Repeat", selection: $draft.recurrence) {
+                            ForEach(RecurrenceRule.allCases) { rule in
+                                Text(rule.title).tag(rule)
+                            }
+                        }
+
+                        if draft.isRecurring {
+                            Label("Completing it advances the task to its next occurrence.", systemImage: "repeat")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 } header: {
                     Text("Schedule")
@@ -80,7 +92,7 @@ struct TaskEditorView: View {
                             exportToCalendar()
                         } label: {
                             Label(
-                                draft.calendarEventIdentifier == nil ? "Add to Calendar" : "Add Another Calendar Event",
+                                calendarButtonTitle,
                                 systemImage: "calendar.badge.plus"
                             )
                         }
@@ -132,10 +144,27 @@ struct TaskEditorView: View {
                     Text("It clashes with “\(conflict.conflictingTitle)”. Listello found the next free time, but you can keep your original choice.")
                 }
             }
-            .confirmationDialog("Delete this task?", isPresented: $showsDeleteConfirmation, titleVisibility: .visible) {
-                Button("Delete Task", role: .destructive) {
-                    store.deleteTask(draft)
-                    dismiss()
+            .confirmationDialog(
+                originalTask.isRecurring ? "Delete recurring task?" : "Delete this task?",
+                isPresented: $showsDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                if originalTask.isRecurring {
+                    Button("Delete This Occurrence", role: .destructive) {
+                        deleteOccurrence()
+                    }
+                    Button("Delete All Future Occurrences", role: .destructive) {
+                        deleteTaskSeries()
+                    }
+                } else {
+                    Button("Delete Task", role: .destructive) {
+                        deleteTask()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                if originalTask.isRecurring {
+                    Text("Keep the series going, or remove the recurring task completely.")
                 }
             }
             .alert("Calendar", isPresented: calendarMessagePresented) {
@@ -157,9 +186,11 @@ struct TaskEditorView: View {
             set: { enabled in
                 if enabled {
                     draft.scheduledAt = Calendar.current.date(byAdding: .hour, value: 1, to: Date())
+                    draft.notifiesAtScheduledTime = store.preferences.notifyNewScheduledTasks
                 } else {
                     draft.scheduledAt = nil
                     draft.notifiesAtScheduledTime = false
+                    draft.recurrence = .none
                 }
             }
         )
@@ -193,6 +224,20 @@ struct TaskEditorView: View {
         let remainder = minutes % 60
         if remainder == 0 { return hours == 1 ? "1 hour" : "\(hours) hours" }
         return "\(hours)h \(remainder)m"
+    }
+
+    private var durationOptions: [Int?] {
+        var options = store.preferences.durationOptions
+        if let current = draft.expectedDurationMinutes, !options.contains(current) {
+            options.append(current)
+            options.sort()
+        }
+        return [nil] + options.map(Optional.some)
+    }
+
+    private var calendarButtonTitle: String {
+        if draft.isRecurring { return "Add This Occurrence to Calendar" }
+        return draft.calendarEventIdentifier == nil ? "Add to Calendar" : "Add Another Calendar Event"
     }
 
     private func checkAndSave() {
@@ -235,6 +280,31 @@ struct TaskEditorView: View {
             draft.calendarEventIdentifier = identifier
             await store.saveTask(draft)
             calendarMessage = "Added to Apple Calendar."
+        }
+    }
+
+    private func deleteTask() {
+        Task {
+            _ = await calendarService.deleteEvent(for: originalTask)
+            store.deleteTask(originalTask)
+            dismiss()
+        }
+    }
+
+    private func deleteOccurrence() {
+        Task {
+            _ = await calendarService.deleteEvent(for: originalTask)
+            store.deleteRecurringOccurrence(originalTask)
+            dismiss()
+        }
+    }
+
+    private func deleteTaskSeries() {
+        let storedTask = store.task(withID: originalTask.id) ?? originalTask
+        Task {
+            _ = await calendarService.deleteEvent(for: storedTask)
+            store.deleteTask(originalTask)
+            dismiss()
         }
     }
 }

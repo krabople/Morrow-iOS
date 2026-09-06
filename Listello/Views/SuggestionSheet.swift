@@ -34,6 +34,16 @@ struct SuggestionSheet: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
+                if let duration = task.expectedDurationMinutes {
+                    Label(durationLabel(duration), systemImage: "timer")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.listelloSky)
+                } else {
+                    Label("No duration estimate", systemImage: "timer")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
                 if let scheduledAt = task.scheduledAt {
                     Label(
                         scheduledAt.formatted(.dateTime.weekday(.wide).hour().minute()),
@@ -56,7 +66,7 @@ struct SuggestionSheet: View {
                 .tint(.listelloTeal)
                 .controlSize(.large)
 
-                Button("Pick Another") {
+                Button("Pick again") {
                     if let next = nextSuggestion(task.id) {
                         withAnimation { task = next }
                     }
@@ -65,7 +75,7 @@ struct SuggestionSheet: View {
             }
             .padding(24)
             .background(ListelloBackground())
-            .navigationTitle("Pick One")
+            .navigationTitle("Random pick")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -74,5 +84,13 @@ struct SuggestionSheet: View {
             }
         }
         .presentationDetents([.medium])
+    }
+
+    private func durationLabel(_ minutes: Int) -> String {
+        if minutes < 60 { return "\(minutes) minutes" }
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        if remainder == 0 { return hours == 1 ? "1 hour" : "\(hours) hours" }
+        return "\(hours)h \(remainder)m"
     }
 }

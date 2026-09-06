@@ -7,6 +7,7 @@ final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem] = []
     @Published private(set) var projects: [ProjectItem] = []
     @Published private(set) var notificationDayKeys: Set<String> = []
+    @Published private(set) var preferences = ListelloPreferences()
 
     private let calendar: Calendar
     private let storageURL: URL
@@ -40,7 +41,9 @@ final class TaskStore: ObservableObject {
         }
 
         load()
+        normalizePreferences()
         normalizeSortIndices()
+        applyAutomaticArchiving()
         if managesNotifications {
             Task { await rebuildNotifications(requestPermission: false) }
         }
@@ -48,14 +51,24 @@ final class TaskStore: ObservableObject {
 
     var activeTasks: [TaskItem] {
         tasks
-            .filter { !$0.isCompleted }
+            .filter { task in
+                !task.isCompleted
+                    && !task.isArchived
+                    && (task.hiddenUntil ?? .distantPast) <= Date()
+            }
             .sorted(by: listOrder)
     }
 
     var completedTasks: [TaskItem] {
         tasks
-            .filter(\.isCompleted)
+            .filter { $0.isCompleted && !$0.isArchived }
             .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+    }
+
+    var archivedTasks: [TaskItem] {
+        tasks
+            .filter(\.isArchived)
+            .sorted { ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast) }
     }
 
     @discardableResult
@@ -66,6 +79,7 @@ final class TaskStore: ObservableObject {
         let task = TaskItem(
             title: cleanTitle,
             scheduledAt: scheduledAt,
+            expectedDurationMinutes: preferences.defaultDurationMinutes,
             projectID: validProjectID(projectID),
             sortIndex: nextSortIndex
         )
@@ -84,6 +98,12 @@ final class TaskStore: ObservableObject {
         if cleanTask.sortIndex == nil { cleanTask.sortIndex = nextSortIndex }
         if cleanTask.scheduledAt == nil {
             cleanTask.notifiesAtScheduledTime = false
+            cleanTask.recurrence = .none
+            cleanTask.recurrenceExceptions = []
+            cleanTask.hiddenUntil = nil
+        } else if cleanTask.recurrence == .none {
+            cleanTask.recurrenceExceptions = []
+            cleanTask.hiddenUntil = nil
         }
 
         if let index = tasks.firstIndex(where: { $0.id == cleanTask.id }) {
@@ -100,7 +120,21 @@ final class TaskStore: ObservableObject {
 
     func toggleCompleted(_ task: TaskItem) {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+
+        if task.isRecurring, !tasks[index].isCompleted {
+            skipRecurringOccurrence(at: index, occurrenceDate: task.scheduledAt ?? tasks[index].scheduledAt)
+            persist()
+            rebuildNotificationsSoon()
+            return
+        }
+
         tasks[index].completedAt = tasks[index].isCompleted ? nil : Date()
+        if tasks[index].isCompleted, preferences.completedArchiveDelayDays == 0 {
+            tasks[index].archivedAt = Date()
+        }
+        if tasks[index].isCompleted {
+            tasks[index].calendarEventIdentifier = nil
+        }
         persist()
         rebuildNotificationsSoon()
     }
@@ -111,10 +145,71 @@ final class TaskStore: ObservableObject {
         rebuildNotificationsSoon()
     }
 
-    func clearCompleted() {
-        tasks.removeAll { $0.isCompleted }
+    func archiveTask(_ task: TaskItem) {
+        guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+        tasks[index].archivedAt = Date()
         persist()
         rebuildNotificationsSoon()
+    }
+
+    @discardableResult
+    func archiveAllTasks() -> Int {
+        let indices = tasks.indices.filter { !tasks[$0].isArchived }
+        guard !indices.isEmpty else { return 0 }
+        let now = Date()
+        for index in indices { tasks[index].archivedAt = now }
+        persist()
+        rebuildNotificationsSoon()
+        return indices.count
+    }
+
+    func restoreArchivedTask(_ task: TaskItem) {
+        guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+        tasks[index].archivedAt = nil
+        tasks[index].completedAt = nil
+        tasks[index].hiddenUntil = nil
+        persist()
+        rebuildNotificationsSoon()
+    }
+
+    func restoreAllArchivedTasks() {
+        guard tasks.contains(where: { $0.isArchived }) else { return }
+        for index in tasks.indices where tasks[index].isArchived {
+            tasks[index].archivedAt = nil
+            tasks[index].completedAt = nil
+            tasks[index].hiddenUntil = nil
+        }
+        persist()
+        rebuildNotificationsSoon()
+    }
+
+    func deleteAllArchivedTasks() {
+        tasks.removeAll { $0.isArchived }
+        persist()
+        rebuildNotificationsSoon()
+    }
+
+    func deleteRecurringOccurrence(_ occurrence: TaskItem) {
+        guard
+            let index = tasks.firstIndex(where: { $0.id == occurrence.id }),
+            tasks[index].isRecurring,
+            let occurrenceDate = occurrence.scheduledAt
+        else { return }
+
+        skipRecurringOccurrence(at: index, occurrenceDate: occurrenceDate)
+
+        persist()
+        rebuildNotificationsSoon()
+    }
+
+    func filteredArchivedTasks(query: String) -> [TaskItem] {
+        let cleanQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanQuery.isEmpty else { return archivedTasks }
+        return archivedTasks.filter { task in
+            task.title.localizedCaseInsensitiveContains(cleanQuery)
+                || task.notes.localizedCaseInsensitiveContains(cleanQuery)
+                || project(withID: task.projectID)?.name.localizedCaseInsensitiveContains(cleanQuery) == true
+        }
     }
 
     func filteredTasks(mode: TaskListMode, query: String, projectID: UUID?) -> [TaskItem] {
@@ -131,10 +226,16 @@ final class TaskStore: ObservableObject {
     }
 
     func tasks(on day: Date) -> [TaskItem] {
-        activeTasks
-            .filter { task in
-                guard let scheduledAt = task.scheduledAt else { return false }
-                return calendar.isDate(scheduledAt, inSameDayAs: day)
+        tasks
+            .filter { !$0.isArchived && !$0.isCompleted }
+            .compactMap { task in
+                guard let occurrence = occurrence(of: task, on: day) else { return nil }
+                var scheduledTask = task
+                scheduledTask.scheduledAt = occurrence
+                if !calendar.isDate(occurrence, equalTo: task.scheduledAt ?? occurrence, toGranularity: .minute) {
+                    scheduledTask.calendarEventIdentifier = nil
+                }
+                return scheduledTask
             }
             .sorted { ($0.scheduledAt ?? .distantFuture) < ($1.scheduledAt ?? .distantFuture) }
     }
@@ -155,31 +256,13 @@ final class TaskStore: ObservableObject {
         return candidates.randomElement()
     }
 
-    func moveTasks(from source: IndexSet, to destination: Int, within visibleTasks: [TaskItem]) {
-        guard !source.isEmpty else { return }
-        var reordered = visibleTasks
-        let moving = source.sorted().map { reordered[$0] }
-        for index in source.sorted(by: >) {
-            reordered.remove(at: index)
-        }
-        let removedBeforeDestination = source.filter { $0 < destination }.count
-        let insertionIndex = max(0, min(destination - removedBeforeDestination, reordered.count))
-        reordered.insert(contentsOf: moving, at: insertionIndex)
-
-        let availableIndices = visibleTasks
-            .map { $0.sortIndex ?? 0 }
-            .sorted()
-        for (task, sortIndex) in zip(reordered, availableIndices) {
-            if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-                tasks[index].sortIndex = sortIndex
-            }
-        }
-        persist()
-    }
-
     func project(withID id: UUID?) -> ProjectItem? {
         guard let id else { return nil }
         return projects.first { $0.id == id }
+    }
+
+    func task(withID id: UUID) -> TaskItem? {
+        tasks.first { $0.id == id }
     }
 
     @discardableResult
@@ -209,36 +292,12 @@ final class TaskStore: ObservableObject {
         persist()
     }
 
-    @discardableResult
-    func importCalendarEntries(_ entries: [CalendarEntry], projectID: UUID? = nil) -> Int {
-        var existingIdentifiers = Set(tasks.compactMap(\.calendarEventIdentifier))
-        var importedCount = 0
-
-        for entry in entries where !existingIdentifiers.contains(entry.id) {
-            let task = TaskItem(
-                title: entry.title,
-                notes: entry.notes,
-                scheduledAt: entry.startDate,
-                expectedDurationMinutes: entry.durationMinutes,
-                projectID: validProjectID(projectID),
-                sortIndex: nextSortIndex + importedCount,
-                calendarEventIdentifier: entry.id
-            )
-            tasks.append(task)
-            existingIdentifiers.insert(entry.id)
-            importedCount += 1
-        }
-
-        if importedCount > 0 { persist() }
-        return importedCount
-    }
-
     func scheduleConflict(for task: TaskItem, calendarEntries: [CalendarEntry]) -> ScheduleConflict? {
         guard let chosenStart = task.scheduledAt, let durationMinutes = task.expectedDurationMinutes else { return nil }
         let duration = TimeInterval(max(1, durationMinutes) * 60)
         let chosenEnd = chosenStart.addingTimeInterval(duration)
 
-        var busySlots: [(title: String, start: Date, end: Date)] = activeTasks.compactMap { existingTask in
+        var busySlots: [(title: String, start: Date, end: Date)] = tasks(on: chosenStart).compactMap { existingTask in
             guard
                 existingTask.id != task.id,
                 let start = existingTask.scheduledAt,
@@ -312,11 +371,82 @@ final class TaskStore: ObservableObject {
         return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
     }
 
+    func setDurationOptions(_ options: [Int]) {
+        let cleaned = Array(Set(options.filter { (1...1_440).contains($0) })).sorted()
+        guard !cleaned.isEmpty else { return }
+        preferences.durationOptions = cleaned
+        if !cleaned.contains(preferences.defaultDurationMinutes) {
+            preferences.defaultDurationMinutes = cleaned.min(by: {
+                abs($0 - preferences.defaultDurationMinutes) < abs($1 - preferences.defaultDurationMinutes)
+            }) ?? cleaned[0]
+        }
+        persist()
+    }
+
+    func setDefaultDuration(_ minutes: Int) {
+        guard preferences.durationOptions.contains(minutes) else { return }
+        preferences.defaultDurationMinutes = minutes
+        persist()
+    }
+
+    func setCompletedArchiveDelayDays(_ days: Int?) {
+        preferences.completedArchiveDelayDays = days
+        persist()
+        applyAutomaticArchiving()
+    }
+
+    func setAppearance(_ appearance: AppearancePreference) {
+        preferences.appearance = appearance
+        persist()
+    }
+
+    func setNotifyNewScheduledTasks(_ enabled: Bool) {
+        preferences.notifyNewScheduledTasks = enabled
+        persist()
+    }
+
+    func setImportantTasksFirst(_ enabled: Bool) {
+        preferences.importantTasksFirst = enabled
+        persist()
+    }
+
+    func setShowNotesInList(_ enabled: Bool) {
+        preferences.showNotesInList = enabled
+        persist()
+    }
+
+    @discardableResult
+    func applyAutomaticArchiving(now: Date = Date()) -> Int {
+        guard let delayDays = preferences.completedArchiveDelayDays else { return 0 }
+        var archivedCount = 0
+
+        for index in tasks.indices {
+            guard
+                !tasks[index].isArchived,
+                let completedAt = tasks[index].completedAt,
+                let archiveDate = calendar.date(byAdding: .day, value: delayDays, to: completedAt),
+                archiveDate <= now
+            else { continue }
+
+            tasks[index].archivedAt = now
+            archivedCount += 1
+        }
+
+        if archivedCount > 0 {
+            persist()
+            rebuildNotificationsSoon()
+        }
+        return archivedCount
+    }
+
     private var nextSortIndex: Int {
         (tasks.compactMap(\.sortIndex).max() ?? -1) + 1
     }
 
     private func listOrder(_ lhs: TaskItem, _ rhs: TaskItem) -> Bool {
+        if preferences.importantTasksFirst, lhs.isImportant != rhs.isImportant {
+            return lhs.isImportant && !rhs.isImportant
+        }
         let leftIndex = lhs.sortIndex ?? Int.max
         let rightIndex = rhs.sortIndex ?? Int.max
         if leftIndex != rightIndex { return leftIndex < rightIndex }
@@ -326,6 +456,71 @@ final class TaskStore: ObservableObject {
     private func validProjectID(_ id: UUID?) -> UUID? {
         guard let id, projects.contains(where: { $0.id == id }) else { return nil }
         return id
+    }
+
+    private func occurrence(of task: TaskItem, on day: Date) -> Date? {
+        guard let scheduledAt = task.scheduledAt else { return nil }
+        if task.recurrence == .none {
+            return calendar.isDate(scheduledAt, inSameDayAs: day) ? scheduledAt : nil
+        }
+
+        let targetDay = calendar.startOfDay(for: day)
+        var candidate = scheduledAt
+        guard calendar.startOfDay(for: candidate) <= targetDay else { return nil }
+
+        for _ in 0..<10_000 {
+            let candidateDay = calendar.startOfDay(for: candidate)
+            if candidateDay == targetDay {
+                let isExcluded = task.recurrenceExceptions.contains {
+                    calendar.isDate($0, inSameDayAs: candidate)
+                }
+                return isExcluded ? nil : candidate
+            }
+            guard candidateDay < targetDay,
+                  let next = task.recurrence.nextDate(after: candidate, calendar: calendar)
+            else { return nil }
+            candidate = next
+        }
+        return nil
+    }
+
+    private func advanceRecurringTask(at index: Int, after occurrenceDate: Date?) {
+        guard
+            let occurrenceDate,
+            tasks[index].isRecurring
+        else { return }
+
+        var candidate = occurrenceDate
+        let now = Date()
+        for _ in 0..<10_000 {
+            guard let next = tasks[index].recurrence.nextDate(after: candidate, calendar: calendar) else { return }
+            candidate = next
+            let isExcluded = tasks[index].recurrenceExceptions.contains {
+                calendar.isDate($0, inSameDayAs: candidate)
+            }
+            if candidate > now, !isExcluded {
+                tasks[index].scheduledAt = candidate
+                tasks[index].completedAt = nil
+                tasks[index].hiddenUntil = calendar.startOfDay(for: candidate)
+                tasks[index].calendarEventIdentifier = nil
+                tasks[index].recurrenceExceptions.removeAll { $0 < calendar.startOfDay(for: candidate) }
+                return
+            }
+        }
+    }
+
+    private func skipRecurringOccurrence(at index: Int, occurrenceDate: Date?) {
+        guard let occurrenceDate else { return }
+        let occurrenceIsCurrent = calendar.startOfDay(for: occurrenceDate) <= calendar.startOfDay(for: Date())
+        if let nextScheduled = tasks[index].scheduledAt,
+           calendar.isDate(nextScheduled, inSameDayAs: occurrenceDate)
+                || (nextScheduled <= occurrenceDate && occurrenceIsCurrent) {
+            advanceRecurringTask(at: index, after: occurrenceDate)
+        } else if !tasks[index].recurrenceExceptions.contains(where: {
+            calendar.isDate($0, inSameDayAs: occurrenceDate)
+        }) {
+            tasks[index].recurrenceExceptions.append(occurrenceDate)
+        }
     }
 
     private func overlaps(start: Date, end: Date, otherStart: Date, otherEnd: Date) -> Bool {
@@ -351,6 +546,17 @@ final class TaskStore: ObservableObject {
         tasks = state.tasks
         projects = state.projects
         notificationDayKeys = state.notificationDayKeys
+        preferences = state.preferences
+    }
+
+    private func normalizePreferences() {
+        let cleaned = Array(Set(preferences.durationOptions.filter { (1...1_440).contains($0) })).sorted()
+        preferences.durationOptions = cleaned.isEmpty
+            ? [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240]
+            : cleaned
+        if !preferences.durationOptions.contains(preferences.defaultDurationMinutes) {
+            preferences.defaultDurationMinutes = preferences.durationOptions.first ?? 30
+        }
     }
 
     private func normalizeSortIndices() {
@@ -370,7 +576,12 @@ final class TaskStore: ObservableObject {
     }
 
     private func persist() {
-        let state = ListelloState(tasks: tasks, projects: projects, notificationDayKeys: notificationDayKeys)
+        let state = ListelloState(
+            tasks: tasks,
+            projects: projects,
+            notificationDayKeys: notificationDayKeys,
+            preferences: preferences
+        )
         guard let data = try? JSONEncoder().encode(state) else { return }
         try? data.write(to: storageURL, options: .atomic)
     }
@@ -393,10 +604,22 @@ final class TaskStore: ObservableObject {
 
         notificationCenter.removeAllPendingNotificationRequests()
 
-        for task in activeTasks {
-            guard let scheduledAt = task.scheduledAt, scheduledAt > Date() else { continue }
-            let shouldNotify = task.notifiesAtScheduledTime || isDayNotificationsEnabled(scheduledAt)
-            guard shouldNotify else { continue }
+        let now = Date()
+        let candidates = tasks
+            .filter { !$0.isArchived && !$0.isCompleted }
+            .flatMap { task in
+                upcomingNotificationDates(for: task, after: now, limit: task.isRecurring ? 12 : 1)
+                    .map { (task: task, date: $0) }
+            }
+            .filter { candidate in
+                candidate.task.notifiesAtScheduledTime || isDayNotificationsEnabled(candidate.date)
+            }
+            .sorted { $0.date < $1.date }
+            .prefix(60)
+
+        for candidate in candidates {
+            let task = candidate.task
+            let scheduledAt = candidate.date
 
             let content = UNMutableNotificationContent()
             content.title = task.title
@@ -405,8 +628,31 @@ final class TaskStore: ObservableObject {
 
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: scheduledAt)
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-            let request = UNNotificationRequest(identifier: "listello-\(task.id.uuidString)", content: content, trigger: trigger)
+            let timestamp = Int(scheduledAt.timeIntervalSince1970)
+            let request = UNNotificationRequest(
+                identifier: "listello-\(task.id.uuidString)-\(timestamp)",
+                content: content,
+                trigger: trigger
+            )
             try? await notificationCenter.add(request)
         }
+    }
+
+    private func upcomingNotificationDates(for task: TaskItem, after date: Date, limit: Int) -> [Date] {
+        guard var candidate = task.scheduledAt else { return [] }
+        var dates: [Date] = []
+
+        for _ in 0..<10_000 {
+            if dates.count >= limit { break }
+            let isExcluded = task.recurrenceExceptions.contains {
+                calendar.isDate($0, inSameDayAs: candidate)
+            }
+            if candidate > date, !isExcluded { dates.append(candidate) }
+            guard task.isRecurring,
+                  let next = task.recurrence.nextDate(after: candidate, calendar: calendar)
+            else { break }
+            candidate = next
+        }
+        return dates
     }
 }

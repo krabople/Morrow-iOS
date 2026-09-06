@@ -75,6 +75,33 @@ final class CalendarService: ObservableObject {
         }
     }
 
+    @discardableResult
+    func deleteEvent(for task: TaskItem) async -> Bool {
+        guard let identifier = task.calendarEventIdentifier else { return true }
+        if !hasFullAccess {
+            guard await requestFullAccess() else { return false }
+        }
+        guard let event = eventStore.event(withIdentifier: identifier) else { return true }
+
+        do {
+            try eventStore.remove(event, span: .thisEvent, commit: true)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    func deleteEvents(for tasks: [TaskItem]) async {
+        var seenIdentifiers = Set<String>()
+        for task in tasks {
+            guard
+                let identifier = task.calendarEventIdentifier,
+                seenIdentifiers.insert(identifier).inserted
+            else { continue }
+            _ = await deleteEvent(for: task)
+        }
+    }
+
     private static func hexColor(_ cgColor: CGColor) -> String {
         let color = UIColor(cgColor: cgColor)
         var red: CGFloat = 0

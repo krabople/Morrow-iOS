@@ -10,9 +10,13 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
     var notifiesAtScheduledTime: Bool
     var isImportant: Bool
     var completedAt: Date?
+    var archivedAt: Date?
     var projectID: UUID?
     var sortIndex: Int?
     var calendarEventIdentifier: String?
+    var recurrence: RecurrenceRule
+    var recurrenceExceptions: [Date]
+    var hiddenUntil: Date?
 
     init(
         id: UUID = UUID(),
@@ -24,9 +28,13 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         notifiesAtScheduledTime: Bool = false,
         isImportant: Bool = false,
         completedAt: Date? = nil,
+        archivedAt: Date? = nil,
         projectID: UUID? = nil,
         sortIndex: Int? = nil,
-        calendarEventIdentifier: String? = nil
+        calendarEventIdentifier: String? = nil,
+        recurrence: RecurrenceRule = .none,
+        recurrenceExceptions: [Date] = [],
+        hiddenUntil: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -37,18 +45,24 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         self.notifiesAtScheduledTime = notifiesAtScheduledTime
         self.isImportant = isImportant
         self.completedAt = completedAt
+        self.archivedAt = archivedAt
         self.projectID = projectID
         self.sortIndex = sortIndex
         self.calendarEventIdentifier = calendarEventIdentifier
+        self.recurrence = recurrence
+        self.recurrenceExceptions = recurrenceExceptions
+        self.hiddenUntil = hiddenUntil
     }
 
     var isCompleted: Bool { completedAt != nil }
+    var isArchived: Bool { archivedAt != nil }
+    var isRecurring: Bool { recurrence != .none }
     var effectiveDurationMinutes: Int { expectedDurationMinutes ?? 30 }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, notes, createdAt, scheduledAt, expectedDurationMinutes
-        case notifiesAtScheduledTime, isImportant, completedAt, projectID, sortIndex
-        case calendarEventIdentifier
+        case notifiesAtScheduledTime, isImportant, completedAt, archivedAt, projectID, sortIndex
+        case calendarEventIdentifier, recurrence, recurrenceExceptions, hiddenUntil
     }
 
     init(from decoder: Decoder) throws {
@@ -66,9 +80,13 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         notifiesAtScheduledTime = try values.decodeIfPresent(Bool.self, forKey: .notifiesAtScheduledTime) ?? false
         isImportant = try values.decodeIfPresent(Bool.self, forKey: .isImportant) ?? false
         completedAt = try values.decodeIfPresent(Date.self, forKey: .completedAt)
+        archivedAt = try values.decodeIfPresent(Date.self, forKey: .archivedAt)
         projectID = try values.decodeIfPresent(UUID.self, forKey: .projectID)
         sortIndex = try values.decodeIfPresent(Int.self, forKey: .sortIndex)
         calendarEventIdentifier = try values.decodeIfPresent(String.self, forKey: .calendarEventIdentifier)
+        recurrence = try values.decodeIfPresent(RecurrenceRule.self, forKey: .recurrence) ?? .none
+        recurrenceExceptions = try values.decodeIfPresent([Date].self, forKey: .recurrenceExceptions) ?? []
+        hiddenUntil = try values.decodeIfPresent(Date.self, forKey: .hiddenUntil)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -86,9 +104,13 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         try values.encode(notifiesAtScheduledTime, forKey: .notifiesAtScheduledTime)
         try values.encode(isImportant, forKey: .isImportant)
         try values.encodeIfPresent(completedAt, forKey: .completedAt)
+        try values.encodeIfPresent(archivedAt, forKey: .archivedAt)
         try values.encodeIfPresent(projectID, forKey: .projectID)
         try values.encodeIfPresent(sortIndex, forKey: .sortIndex)
         try values.encodeIfPresent(calendarEventIdentifier, forKey: .calendarEventIdentifier)
+        try values.encode(recurrence, forKey: .recurrence)
+        try values.encode(recurrenceExceptions, forKey: .recurrenceExceptions)
+        try values.encodeIfPresent(hiddenUntil, forKey: .hiddenUntil)
     }
 }
 
@@ -119,6 +141,117 @@ enum TaskListMode: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+enum RecurrenceRule: String, CaseIterable, Codable, Identifiable {
+    case none
+    case daily
+    case weekdays
+    case weekly
+    case fortnightly
+    case monthly
+    case yearly
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .none: "Does not repeat"
+        case .daily: "Every day"
+        case .weekdays: "Weekdays"
+        case .weekly: "Every week"
+        case .fortnightly: "Every fortnight"
+        case .monthly: "Every month"
+        case .yearly: "Every year"
+        }
+    }
+
+    func nextDate(after date: Date, calendar: Calendar) -> Date? {
+        switch self {
+        case .none:
+            return nil
+        case .daily:
+            return calendar.date(byAdding: .day, value: 1, to: date)
+        case .weekdays:
+            var candidate = date
+            for _ in 0..<7 {
+                guard let next = calendar.date(byAdding: .day, value: 1, to: candidate) else { return nil }
+                candidate = next
+                let weekday = calendar.component(.weekday, from: candidate)
+                if (2...6).contains(weekday) { return candidate }
+            }
+            return nil
+        case .weekly:
+            return calendar.date(byAdding: .weekOfYear, value: 1, to: date)
+        case .fortnightly:
+            return calendar.date(byAdding: .weekOfYear, value: 2, to: date)
+        case .monthly:
+            return calendar.date(byAdding: .month, value: 1, to: date)
+        case .yearly:
+            return calendar.date(byAdding: .year, value: 1, to: date)
+        }
+    }
+}
+
+enum AppearancePreference: String, CaseIterable, Codable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+}
+
+struct ListelloPreferences: Codable, Equatable {
+    var durationOptions: [Int]
+    var defaultDurationMinutes: Int
+    var completedArchiveDelayDays: Int?
+    var appearance: AppearancePreference
+    var notifyNewScheduledTasks: Bool
+    var importantTasksFirst: Bool
+    var showNotesInList: Bool
+
+    init(
+        durationOptions: [Int] = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240],
+        defaultDurationMinutes: Int = 30,
+        completedArchiveDelayDays: Int? = nil,
+        appearance: AppearancePreference = .system,
+        notifyNewScheduledTasks: Bool = false,
+        importantTasksFirst: Bool = false,
+        showNotesInList: Bool = true
+    ) {
+        self.durationOptions = durationOptions
+        self.defaultDurationMinutes = defaultDurationMinutes
+        self.completedArchiveDelayDays = completedArchiveDelayDays
+        self.appearance = appearance
+        self.notifyNewScheduledTasks = notifyNewScheduledTasks
+        self.importantTasksFirst = importantTasksFirst
+        self.showNotesInList = showNotesInList
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case durationOptions, defaultDurationMinutes, completedArchiveDelayDays
+        case appearance, notifyNewScheduledTasks, importantTasksFirst, showNotesInList
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        durationOptions = try values.decodeIfPresent([Int].self, forKey: .durationOptions)
+            ?? [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240]
+        defaultDurationMinutes = try values.decodeIfPresent(Int.self, forKey: .defaultDurationMinutes) ?? 30
+        completedArchiveDelayDays = try values.decodeIfPresent(Int.self, forKey: .completedArchiveDelayDays)
+        appearance = try values.decodeIfPresent(AppearancePreference.self, forKey: .appearance) ?? .system
+        notifyNewScheduledTasks = try values.decodeIfPresent(Bool.self, forKey: .notifyNewScheduledTasks) ?? false
+        importantTasksFirst = try values.decodeIfPresent(Bool.self, forKey: .importantTasksFirst) ?? false
+        showNotesInList = try values.decodeIfPresent(Bool.self, forKey: .showNotesInList) ?? true
+    }
+}
+
 struct CalendarEntry: Identifiable, Equatable {
     let id: String
     let title: String
@@ -145,15 +278,22 @@ struct ListelloState: Codable {
     var tasks: [TaskItem]
     var projects: [ProjectItem]
     var notificationDayKeys: Set<String>
+    var preferences: ListelloPreferences
 
     private enum CodingKeys: String, CodingKey {
-        case tasks, projects, notificationDayKeys
+        case tasks, projects, notificationDayKeys, preferences
     }
 
-    init(tasks: [TaskItem], projects: [ProjectItem], notificationDayKeys: Set<String>) {
+    init(
+        tasks: [TaskItem],
+        projects: [ProjectItem],
+        notificationDayKeys: Set<String>,
+        preferences: ListelloPreferences = ListelloPreferences()
+    ) {
         self.tasks = tasks
         self.projects = projects
         self.notificationDayKeys = notificationDayKeys
+        self.preferences = preferences
     }
 
     init(from decoder: Decoder) throws {
@@ -161,5 +301,6 @@ struct ListelloState: Codable {
         tasks = try values.decodeIfPresent([TaskItem].self, forKey: .tasks) ?? []
         projects = try values.decodeIfPresent([ProjectItem].self, forKey: .projects) ?? []
         notificationDayKeys = try values.decodeIfPresent(Set<String>.self, forKey: .notificationDayKeys) ?? []
+        preferences = try values.decodeIfPresent(ListelloPreferences.self, forKey: .preferences) ?? ListelloPreferences()
     }
 }

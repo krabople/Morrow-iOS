@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskListView: View {
     @EnvironmentObject private var store: TaskStore
+    @EnvironmentObject private var calendarService: CalendarService
 
     @State private var mode: TaskListMode = .active
     @State private var query = ""
@@ -10,7 +11,7 @@ struct TaskListView: View {
     @State private var showsProjects = false
     @State private var editingTask: TaskItem?
     @State private var suggestion: TaskItem?
-    @State private var editMode: EditMode = .inactive
+    @State private var taskPendingDeletion: TaskItem?
 
     private var selectedProject: ProjectItem? {
         store.project(withID: selectedProjectID)
@@ -64,41 +65,18 @@ struct TaskListView: View {
                     .accessibilityLabel("Open projects")
                 }
 
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if editMode.isEditing {
-                        Button("Done") { withAnimation { editMode = .inactive } }
-                            .fontWeight(.semibold)
-                    } else {
-                        if mode == .active, !visibleTasks.isEmpty {
-                            Button("Pick One") {
-                                suggestion = store.suggestedTask(from: visibleTasks)
-                            }
-                            .fontWeight(.semibold)
+                ToolbarItem(placement: .topBarTrailing) {
+                    if mode == .active, !visibleTasks.isEmpty {
+                        Button("Random pick") {
+                            suggestion = store.suggestedTask(from: visibleTasks)
                         }
-
-                        if (mode == .active && visibleTasks.count > 1) || (mode == .completed && !store.completedTasks.isEmpty) {
-                            Menu {
-                                if mode == .active, visibleTasks.count > 1 {
-                                    Button("Reorder Tasks", systemImage: "arrow.up.arrow.down") {
-                                        withAnimation { editMode = .active }
-                                    }
-                                }
-                                if mode == .completed, !store.completedTasks.isEmpty {
-                                    Button("Clear Completed", systemImage: "trash", role: .destructive) {
-                                        store.clearCompleted()
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                            }
-                            .accessibilityLabel("More list actions")
-                        }
+                        .fontWeight(.semibold)
                     }
                 }
             }
             .searchable(text: $query, prompt: "Search tasks")
             .safeAreaInset(edge: .bottom) {
-                if mode == .active, !editMode.isEditing {
+                if mode == .active {
                     quickAddBar
                 }
             }
@@ -112,21 +90,45 @@ struct TaskListView: View {
                         let current = store.filteredTasks(mode: .active, query: query, projectID: selectedProjectID)
                         return store.suggestedTask(from: current, excluding: excludedID)
                     },
-                    complete: store.toggleCompleted
+                    complete: completeTask
                 )
             }
+            .confirmationDialog(
+                "Delete recurring task?",
+                isPresented: Binding(
+                    get: { taskPendingDeletion != nil },
+                    set: { if !$0 { taskPendingDeletion = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let task = taskPendingDeletion {
+                    Button("Delete This Occurrence", role: .destructive) {
+                        deleteOccurrence(task)
+                        taskPendingDeletion = nil
+                    }
+                    Button("Delete All Future Occurrences", role: .destructive) {
+                        deleteSeries(task)
+                        taskPendingDeletion = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) { taskPendingDeletion = nil }
+            } message: {
+                Text("Keep the series going, or remove the recurring task completely.")
+            }
         }
-        .environment(\.editMode, $editMode)
     }
 
     private var taskList: some View {
         List {
             ForEach(visibleTasks) { task in
-                TaskRow(task: task, project: store.project(withID: task.projectID)) {
-                    withAnimation { store.toggleCompleted(task) }
+                TaskRow(
+                    task: task,
+                    project: store.project(withID: task.projectID),
+                    showsNotes: store.preferences.showNotesInList
+                ) {
+                    completeTask(task)
                 }
                 .onTapGesture {
-                    guard !editMode.isEditing else { return }
                     editingTask = task
                 }
                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
@@ -134,23 +136,30 @@ struct TaskListView: View {
                 .listRowBackground(Color.clear)
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
-                        withAnimation { store.toggleCompleted(task) }
+                        completeTask(task)
                     } label: {
                         Label(task.isCompleted ? "Restore" : "Done", systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark")
                     }
                     .tint(.listelloTeal)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button {
+                        withAnimation { store.archiveTask(task) }
+                    } label: {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+                    .tint(.listelloViolet)
+
                     Button(role: .destructive) {
-                        withAnimation { store.deleteTask(task) }
+                        if task.isRecurring {
+                            taskPendingDeletion = task
+                        } else {
+                            deleteTask(task)
+                        }
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
-            }
-            .onMove { source, destination in
-                guard mode == .active else { return }
-                store.moveTasks(from: source, to: destination, within: visibleTasks)
             }
         }
         .listStyle(.plain)
@@ -198,7 +207,7 @@ struct TaskListView: View {
             let count = store.activeTasks.filter { $0.projectID == selectedProject.id }.count
             return "\(count) open \(count == 1 ? "task" : "tasks") in this project"
         }
-        return "A colourful home for the things that matter"
+        return "Plan simply. Get things done."
     }
 
     private var quickAddColor: Color {
@@ -219,5 +228,34 @@ struct TaskListView: View {
     private func addTask() {
         guard store.addTask(title: newTaskTitle, projectID: selectedProjectID) != nil else { return }
         newTaskTitle = ""
+    }
+
+    private func completeTask(_ task: TaskItem) {
+        Task {
+            _ = await calendarService.deleteEvent(for: task)
+            withAnimation { store.toggleCompleted(task) }
+        }
+    }
+
+    private func deleteTask(_ task: TaskItem) {
+        Task {
+            _ = await calendarService.deleteEvent(for: task)
+            withAnimation { store.deleteTask(task) }
+        }
+    }
+
+    private func deleteOccurrence(_ task: TaskItem) {
+        Task {
+            _ = await calendarService.deleteEvent(for: task)
+            withAnimation { store.deleteRecurringOccurrence(task) }
+        }
+    }
+
+    private func deleteSeries(_ task: TaskItem) {
+        let storedTask = store.task(withID: task.id) ?? task
+        Task {
+            _ = await calendarService.deleteEvent(for: storedTask)
+            withAnimation { store.deleteTask(task) }
+        }
     }
 }

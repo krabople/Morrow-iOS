@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension Color {
     static let listelloTeal = Color(red: 0.13, green: 0.70, blue: 0.66)
@@ -7,8 +8,16 @@ extension Color {
     static let listelloCoral = Color(red: 0.98, green: 0.39, blue: 0.34)
     static let listelloViolet = Color(red: 0.51, green: 0.42, blue: 0.86)
     static let listelloRose = Color(red: 0.91, green: 0.37, blue: 0.60)
-    static let listelloInk = Color(red: 0.08, green: 0.13, blue: 0.22)
-    static let listelloCream = Color(red: 1.00, green: 0.98, blue: 0.93)
+    static let listelloInk = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.93, green: 0.95, blue: 0.98, alpha: 1)
+            : UIColor(red: 0.08, green: 0.13, blue: 0.22, alpha: 1)
+    })
+    static let listelloCream = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.035, green: 0.055, blue: 0.09, alpha: 1)
+            : UIColor(red: 1.00, green: 0.98, blue: 0.93, alpha: 1)
+    })
 
     init(hex: String) {
         let value = Int(hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted), radix: 16) ?? 0x38BDB2
@@ -17,6 +26,16 @@ extension Color {
             green: Double((value >> 8) & 0xFF) / 255,
             blue: Double(value & 0xFF) / 255
         )
+    }
+}
+
+extension AppearancePreference {
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
     }
 }
 
@@ -74,7 +93,8 @@ struct ListelloHeader: View {
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: 0)

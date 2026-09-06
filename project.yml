@@ -8,7 +8,7 @@ settings:
   base:
     DEVELOPMENT_TEAM: 6YYA8L76Y8
     SWIFT_VERSION: 5.10
-    MARKETING_VERSION: 1.1.0
+    MARKETING_VERSION: 1.2.0
     CURRENT_PROJECT_VERSION: 1
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: false
@@ -42,7 +42,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.productivity
         NSUserNotificationsUsageDescription: Listello sends notifications only for tasks and days you choose.
-        NSCalendarsFullAccessUsageDescription: Listello uses calendar access only when you choose to show, import, or export calendar events.
+        NSCalendarsFullAccessUsageDescription: Listello uses calendar access only when you choose to show or export calendar events.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.krabople.morrow

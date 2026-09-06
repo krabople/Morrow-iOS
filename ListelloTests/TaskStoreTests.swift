@@ -52,22 +52,6 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(store.filteredTasks(mode: .active, query: "", projectID: nil).count, 2)
     }
 
-    func testReorderingAFilteredProjectPreservesItsOrder() {
-        let store = makeStore()
-        let project = store.addProject(name: "Website", color: .teal)!
-        store.addTask(title: "Login", projectID: project.id)
-        store.addTask(title: "Home", projectID: project.id)
-        store.addTask(title: "Unassigned")
-
-        let visible = store.filteredTasks(mode: .active, query: "", projectID: project.id)
-        store.moveTasks(from: IndexSet(integer: 0), to: 2, within: visible)
-
-        XCTAssertEqual(
-            store.filteredTasks(mode: .active, query: "", projectID: project.id).map(\.title),
-            ["Home", "Login"]
-        )
-    }
-
     func testScheduleConflictSuggestsTheNextFreeTime() async {
         let store = makeStore()
         let day = Date(timeIntervalSince1970: 1_800_000_000)
@@ -86,23 +70,90 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(conflict?.suggestedStart, ten)
     }
 
-    func testCalendarImportsSkipExistingEvents() {
+    func testArchiveAllRestoreAndDeleteAll() {
         let store = makeStore()
-        let start = Date(timeIntervalSince1970: 1_800_000_000)
-        let event = CalendarEntry(
-            id: "event-1",
-            title: "Design review",
-            notes: "",
-            startDate: start,
-            endDate: start.addingTimeInterval(3600),
-            isAllDay: false,
-            calendarTitle: "Work",
-            colorHex: "#38BDB2"
-        )
+        store.addTask(title: "First")
+        let second = store.addTask(title: "Second")!
+        store.toggleCompleted(second)
 
-        XCTAssertEqual(store.importCalendarEntries([event]), 1)
-        XCTAssertEqual(store.importCalendarEntries([event]), 0)
-        XCTAssertEqual(store.activeTasks.first?.expectedDurationMinutes, 60)
+        XCTAssertEqual(store.archiveAllTasks(), 2)
+        XCTAssertTrue(store.activeTasks.isEmpty)
+        XCTAssertTrue(store.completedTasks.isEmpty)
+        XCTAssertEqual(store.archivedTasks.count, 2)
+
+        store.restoreAllArchivedTasks()
+        XCTAssertEqual(store.activeTasks.count, 2)
+        XCTAssertTrue(store.archivedTasks.isEmpty)
+
+        store.archiveAllTasks()
+        store.deleteAllArchivedTasks()
+        XCTAssertTrue(store.tasks.isEmpty)
+    }
+
+    func testCustomDurationChoicesAndDefaultsPersist() {
+        var store: TaskStore? = makeStore()
+        store?.setDurationOptions([5, 25, 25, 2_000])
+        store?.setDefaultDuration(5)
+        store?.setAppearance(.dark)
+        store?.setNotifyNewScheduledTasks(true)
+        store = nil
+
+        let restored = makeStore()
+        XCTAssertEqual(restored.preferences.durationOptions, [5, 25])
+        XCTAssertEqual(restored.preferences.defaultDurationMinutes, 5)
+        XCTAssertEqual(restored.preferences.appearance, .dark)
+        XCTAssertTrue(restored.preferences.notifyNewScheduledTasks)
+        XCTAssertEqual(restored.addTask(title: "Five minute job")?.expectedDurationMinutes, 5)
+    }
+
+    func testCompletedTasksAutomaticallyMoveToArchive() async {
+        let store = makeStore()
+        let completedAt = calendar.date(byAdding: .day, value: -8, to: Date())!
+        await store.saveTask(TaskItem(title: "Old completed task", completedAt: completedAt))
+
+        store.setCompletedArchiveDelayDays(7)
+
+        XCTAssertTrue(store.completedTasks.isEmpty)
+        XCTAssertEqual(store.archivedTasks.map(\.title), ["Old completed task"])
+    }
+
+    func testRecurringTaskAppearsOnFutureDatesAndAdvancesWhenDone() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let start = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow)!
+        let followingDay = calendar.date(byAdding: .day, value: 1, to: start)!
+        await store.saveTask(TaskItem(
+            title: "Daily review",
+            scheduledAt: start,
+            calendarEventIdentifier: "calendar-event",
+            recurrence: .daily
+        ))
+
+        XCTAssertEqual(store.tasks(on: start).map(\.title), ["Daily review"])
+        XCTAssertEqual(store.tasks(on: followingDay).map(\.title), ["Daily review"])
+
+        store.toggleCompleted(store.activeTasks[0])
+
+        XCTAssertTrue(store.activeTasks.isEmpty)
+        XCTAssertEqual(store.tasks(on: followingDay).map(\.title), ["Daily review"])
+        XCTAssertTrue(store.completedTasks.isEmpty)
+        XCTAssertNil(store.tasks(on: followingDay).first?.calendarEventIdentifier)
+    }
+
+    func testDeletingOneFutureRecurringOccurrenceKeepsTheSeries() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let start = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow)!
+        let second = calendar.date(byAdding: .weekOfYear, value: 1, to: start)!
+        let third = calendar.date(byAdding: .weekOfYear, value: 2, to: start)!
+        await store.saveTask(TaskItem(title: "Weekly planning", scheduledAt: start, recurrence: .weekly))
+
+        let secondOccurrence = try! XCTUnwrap(store.tasks(on: second).first)
+        store.deleteRecurringOccurrence(secondOccurrence)
+
+        XCTAssertEqual(store.tasks(on: start).count, 1)
+        XCTAssertTrue(store.tasks(on: second).isEmpty)
+        XCTAssertEqual(store.tasks(on: third).count, 1)
     }
 
     func testCompletingAndRestoringTask() {

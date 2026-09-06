@@ -4,6 +4,7 @@ struct TaskRow: View {
     let task: TaskItem
     let project: ProjectItem?
     var showsScheduleLabel = true
+    var showsNotes = true
     let onToggle: () -> Void
 
     private var accent: Color {
@@ -35,7 +36,7 @@ struct TaskRow: View {
                     }
                 }
 
-                if !task.notes.isEmpty {
+                if showsNotes, !task.notes.isEmpty {
                     Text(task.notes)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -56,6 +57,11 @@ struct TaskRow: View {
                     if task.calendarEventIdentifier != nil {
                         Label("Calendar", systemImage: "calendar")
                             .foregroundStyle(Color.listelloViolet)
+                    }
+
+                    if task.isRecurring {
+                        Label(task.recurrence.title, systemImage: "repeat")
+                            .foregroundStyle(Color.listelloCoral)
                     }
                 }
                 .font(.caption2.weight(.semibold))
