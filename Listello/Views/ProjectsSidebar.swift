@@ -69,7 +69,7 @@ struct ProjectsSidebar: View {
         }
         .frame(width: min(330, UIScreen.main.bounds.width * 0.86))
         .background(.regularMaterial)
-        .clipShape(UnevenRoundedRectangle(topTrailingRadius: 28, bottomTrailingRadius: 28))
+        .clipShape(UnevenRoundedRectangle(bottomTrailingRadius: 28, topTrailingRadius: 28))
         .shadow(color: .black.opacity(0.18), radius: 28, x: 8)
         .sheet(item: $newProject) { project in
             ProjectEditorView(project: project, isNew: true) { updated in
