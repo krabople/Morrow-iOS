@@ -47,12 +47,35 @@ image.unlockFocus()
 guard
     let tiff = image.tiffRepresentation,
     let bitmap = NSBitmapImageRep(data: tiff),
-    let data = bitmap.representation(using: .png, properties: [:])
+    let cgImage = bitmap.cgImage
 else {
     fatalError("Unable to render Morrow app icon")
 }
 
+let colorSpace = CGColorSpaceCreateDeviceRGB()
+guard let cgContext = CGContext(
+    data: nil,
+    width: 1024,
+    height: 1024,
+    bitsPerComponent: 8,
+    bytesPerRow: 1024 * 4,
+    space: colorSpace,
+    bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+) else {
+    fatalError("Unable to create opaque CGContext")
+}
+
+cgContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: 1024, height: 1024))
+
+guard
+    let opaqueCgImage = cgContext.makeImage(),
+    let data = NSBitmapImageRep(cgImage: opaqueCgImage).representation(using: NSBitmapImageRep.FileType.png, properties: [:])
+else {
+    fatalError("Unable to generate opaque PNG data")
+}
+
 let outputURL = URL(fileURLWithPath: output)
 try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-try data.write(to: outputURL, options: .atomic)
-print("Generated \(outputURL.path)")
+try data.write(to: outputURL, options: Data.WritingOptions.atomic)
+print("Generated opaque icon at \(outputURL.path)")
+

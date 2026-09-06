@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: morrow-testflight
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
@@ -47,6 +47,9 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Generate release app icon
+        run: swift Support/generate-icon.swift Morrow/Resources/Assets.xcassets/AppIcon.appiconset/MorrowIcon-1024.png
+
       - name: Generate Xcode project
         run: xcodegen generate
 
@@ -56,29 +59,85 @@ jobs:
           p12-file-base64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           p12-password: ${{ secrets.P12_PASSWORD }}
 
-      - name: Download App Store provisioning profile
-        uses: Apple-Actions/download-provisioning-profiles@v6
-        with:
-          bundle-id: ${{ env.APP_BUNDLE_ID }}
-          profile-type: IOS_APP_STORE
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+      - name: Install App Store provisioning profile
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          ruby <<'RUBY'
+          require "base64"
+          require "fileutils"
+          require "json"
+          require "net/http"
+          require "openssl"
+          require "uri"
+
+          def base64url(v) = Base64.urlsafe_encode64(v).delete("=")
+          def fixed_width(v) = [v.to_i.to_s(16).rjust(64,"0")].pack("H*")
+
+          now = Time.now.to_i
+          h = base64url({alg:"ES256",kid:ENV["APPSTORE_KEY_ID"],typ:"JWT"}.to_json)
+          p = base64url({iss:ENV["APPSTORE_ISSUER_ID"],iat:now,exp:now+900,aud:"appstoreconnect-v1"}.to_json)
+          ut = "#{h}.#{p}"
+          key = OpenSSL::PKey.read(ENV["APPSTORE_PRIVATE_KEY"])
+          sig = key.dsa_sign_asn1(OpenSSL::Digest::SHA256.digest(ut))
+          parts = OpenSSL::ASN1.decode(sig).value
+          token = "#{ut}.#{base64url(parts.map{|x|fixed_width(x.value)}.join)}"
+
+          uri = URI("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&include=bundleId&fields[profiles]=name,uuid,profileContent,profileState")
+          req = Net::HTTP::Get.new(uri)
+          req["Authorization"] = "Bearer #{token}"
+          resp = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true){|h|h.request(req)}
+          profiles = JSON.parse(resp.body)["data"]
+          profile = profiles.find{|p| p["attributes"]["name"].include?("Morrow")}
+          abort "No Morrow profile found" unless profile
+
+          puts "Profile: #{profile["attributes"]["name"]} (#{profile["attributes"]["uuid"]})"
+          content = profile.dig("attributes","profileContent")
+          unless content
+            detail_uri = URI("https://api.appstoreconnect.apple.com/v1/profiles/#{profile["id"]}?fields[profiles]=name,uuid,profileContent")
+            dreq = Net::HTTP::Get.new(detail_uri)
+            dreq["Authorization"] = "Bearer #{token}"
+            dresp = Net::HTTP.start(detail_uri.hostname, detail_uri.port, use_ssl: true){|h|h.request(dreq)}
+            content = JSON.parse(dresp.body).dig("data","attributes","profileContent")
+          end
+
+          dir = File.expand_path("~/Library/MobileDevice/Provisioning Profiles")
+          FileUtils.mkdir_p(dir)
+          path = File.join(dir, "#{profile["attributes"]["uuid"]}.mobileprovision")
+          File.binwrite(path, Base64.decode64(content))
+          puts "Installed: #{path}"
+          RUBY
 
       - name: Archive and export signed IPA
         id: build
-        uses: Apple-Actions/xcodebuild@v1
-        with:
-          project: Morrow.xcodeproj
-          scheme: Morrow
-          configuration: Release
-          sdk: iphoneos
-          destination: generic/platform=iOS
-          action: archive
-          archive-path: .build/Archives/Morrow.xcarchive
-          export-options-plist: Support/ExportOptions.plist
-          export-path: .build/Export
-          build-number: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+
+          xcodebuild archive \
+            -project Morrow.xcodeproj \
+            -scheme Morrow \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath .build/Archives/Morrow.xcarchive \
+            -derivedDataPath .build/DerivedData \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="AppStore Morrow Shared GitHub" \
+            DEVELOPMENT_TEAM=6YYA8L76Y8 \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            | xcbeautify --renderer github-actions
+
+          xcodebuild -exportArchive \
+            -archivePath .build/Archives/Morrow.xcarchive \
+            -exportOptionsPlist Support/ExportOptions.plist \
+            -exportPath .build/Export \
+            | xcbeautify --renderer github-actions
+
+          IPA_PATH=$(find .build/Export -name '*.ipa' -print -quit)
+          echo "ipa-path=$IPA_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Keep signed IPA as a workflow artifact
         uses: actions/upload-artifact@v7
@@ -94,4 +153,5 @@ jobs:
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-          wait-for-processing: "true"
+          wait-for-processing: "false"
+

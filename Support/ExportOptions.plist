@@ -7,9 +7,14 @@
   <key>method</key>
   <string>app-store-connect</string>
   <key>signingStyle</key>
-  <string>automatic</string>
+  <string>manual</string>
   <key>teamID</key>
   <string>6YYA8L76Y8</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.krabople.morrow</key>
+    <string>AppStore Morrow Shared GitHub</string>
+  </dict>
   <key>uploadSymbols</key>
   <true/>
 </dict>
