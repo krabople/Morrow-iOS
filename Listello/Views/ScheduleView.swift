@@ -208,7 +208,6 @@ struct ScheduleView: View {
                         }
                     }
         }
-    }
 
     private var timelineView: some View {
         VStack(spacing: 8) {
@@ -784,3 +783,4 @@ private struct CalendarEntryRow: View {
         entry.calendarTitle
     }
 }
+
