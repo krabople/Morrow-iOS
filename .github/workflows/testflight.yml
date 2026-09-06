@@ -166,7 +166,6 @@ jobs:
               height=$(sips -g pixelHeight "$icon" 2>/dev/null | awk '/pixelHeight/ {print $2}')
               if [ "$width" = "$expected" ] && [ "$height" = "$expected" ]; then
                 echo "$icon"
-                break
               fi
             done
           }
