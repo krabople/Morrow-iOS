@@ -1,4 +1,4 @@
-name: Verify Morrow iOS
+name: Verify Quiet List iOS
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: morrow-ios-${{ github.ref }}
+  group: quiet-list-ios-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         run: brew install xcodegen
 
       - name: Generate complete app icon catalogue
-        run: swift Support/generate-icon.swift Morrow/Resources/Assets.xcassets/AppIcon.appiconset/MorrowIcon-1024.png
+        run: swift Support/generate-icon.swift Artwork/QuietListSource.jpg QuietList/Resources/Assets.xcassets/AppIcon.appiconset/QuietListIcon-1024.png
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -41,9 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild test \
-            -project Morrow.xcodeproj \
-            -scheme Morrow \
+            -project QuietList.xcodeproj \
+            -scheme QuietList \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
             CODE_SIGNING_ALLOWED=NO
-

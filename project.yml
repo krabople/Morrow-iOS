@@ -1,4 +1,4 @@
-name: Morrow
+name: QuietList
 options:
   bundleIdPrefix: com.krabople
   deploymentTarget:
@@ -13,19 +13,19 @@ settings:
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: false
 targets:
-  Morrow:
+  QuietList:
     type: application
     platform: iOS
     sources:
-      - path: Morrow
+      - path: QuietList
         excludes:
           - Resources
-      - path: Morrow/Resources
+      - path: QuietList/Resources
         buildPhase: resources
     info:
       path: Support/Info.plist
       properties:
-        CFBundleDisplayName: Morrow
+        CFBundleDisplayName: Quiet List
         CFBundleIconName: AppIcon
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -41,12 +41,11 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.productivity
-        NSUserNotificationsUsageDescription: Morrow uses notifications only for reminders you choose.
-        NSLocationWhenInUseUsageDescription: Morrow can surface location-based reminders when you ask it to.
+        NSUserNotificationsUsageDescription: Quiet List sends notifications only for tasks and days you choose.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.krabople.morrow
-        PRODUCT_NAME: Morrow
+        PRODUCT_NAME: QuietList
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: Apple Distribution
         PROVISIONING_PROFILE_SPECIFIER: AppStore Morrow Shared GitHub
@@ -58,15 +57,14 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
     scheme:
       testTargets:
-        - MorrowTests
-  MorrowTests:
+        - QuietListTests
+  QuietListTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - MorrowTests
+      - QuietListTests
     dependencies:
-      - target: Morrow
+      - target: QuietList
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.krabople.morrow.tests
-
+        PRODUCT_BUNDLE_IDENTIFIER: com.krabople.quietlist.tests

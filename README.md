@@ -1,23 +1,24 @@
-# Morrow for iOS
+# Quiet List for iOS
 
-Morrow is a calm, comprehensive task planner built natively with SwiftUI for iPhone and iPad.
+Quiet List is a deliberately simple task app built natively with SwiftUI for iPhone and iPad.
 
-## Included in this TestFlight build
+## What it does
 
-- Today, Inbox, Agenda, Calendar, Priority Matrix, Focus and More navigation
-- Fast natural-language-style capture with Today/Tomorrow recognition
-- Rich tasks with notes, due dates, durations, priority, energy, projects, flags and subtasks
-- Time-and-energy-aware “Pick for me” random task suggestions
-- Capacity planning, task completion and local persistence
-- Focus timer, queue and soundscape controls
-- Habits, goals, insights, lists, routines, templates, automations, people and archive surfaces
-- Universal search and an iOS privacy manifest
+- Capture an unscheduled task in one step
+- Keep active and completed tasks easy to scan
+- Add optional notes, importance, date and time
+- View scheduled tasks as a timetable for any chosen day
+- Enable a notification for one scheduled task
+- Enable notifications for every scheduled task on a selected day
+- Search, swipe to complete, restore or delete
+- Use “Pick One” when deciding what to do next
+- Store everything privately on the device
+
+Scheduling and notifications are always optional. There are no accounts, projects, dashboards, habits, points, subscriptions or setup screens.
 
 ## Release identity
 
-- Display name: Morrow
-- Bundle identifier: `com.krabople.morrow`
+- Display name: Quiet List
+- Bundle identifier: `com.krabople.morrow` (retained for the existing App Store Connect record)
 - Minimum iOS version: iOS 17.0
 - Apple Developer Team: `6YYA8L76Y8`
-
-The TestFlight workflow expects the same App Store Connect and distribution-certificate secrets used by the account’s existing iOS release workflows.
