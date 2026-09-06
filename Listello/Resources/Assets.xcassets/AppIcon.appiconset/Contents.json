@@ -1,115 +1,115 @@
 {
   "images" : [
     {
-      "filename" : "QuietListIcon-1024.png",
+      "filename" : "ListelloIcon-1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
     },
     {
-      "filename" : "QuietListIcon-1024.png",
+      "filename" : "ListelloIcon-1024.png",
       "idiom" : "ios-marketing",
       "scale" : "1x",
       "size" : "1024x1024"
     },
     {
-      "filename" : "QuietListIcon-20@2x.png",
+      "filename" : "ListelloIcon-20@2x.png",
       "idiom" : "iphone",
       "scale" : "2x",
       "size" : "20x20"
     },
     {
-      "filename" : "QuietListIcon-20@3x.png",
+      "filename" : "ListelloIcon-20@3x.png",
       "idiom" : "iphone",
       "scale" : "3x",
       "size" : "20x20"
     },
     {
-      "filename" : "QuietListIcon-29@2x.png",
+      "filename" : "ListelloIcon-29@2x.png",
       "idiom" : "iphone",
       "scale" : "2x",
       "size" : "29x29"
     },
     {
-      "filename" : "QuietListIcon-29@3x.png",
+      "filename" : "ListelloIcon-29@3x.png",
       "idiom" : "iphone",
       "scale" : "3x",
       "size" : "29x29"
     },
     {
-      "filename" : "QuietListIcon-40@2x.png",
+      "filename" : "ListelloIcon-40@2x.png",
       "idiom" : "iphone",
       "scale" : "2x",
       "size" : "40x40"
     },
     {
-      "filename" : "QuietListIcon-40@3x.png",
+      "filename" : "ListelloIcon-40@3x.png",
       "idiom" : "iphone",
       "scale" : "3x",
       "size" : "40x40"
     },
     {
-      "filename" : "QuietListIcon-60@2x.png",
+      "filename" : "ListelloIcon-60@2x.png",
       "idiom" : "iphone",
       "scale" : "2x",
       "size" : "60x60"
     },
     {
-      "filename" : "QuietListIcon-60@3x.png",
+      "filename" : "ListelloIcon-60@3x.png",
       "idiom" : "iphone",
       "scale" : "3x",
       "size" : "60x60"
     },
     {
-      "filename" : "QuietListIcon-20.png",
+      "filename" : "ListelloIcon-20.png",
       "idiom" : "ipad",
       "scale" : "1x",
       "size" : "20x20"
     },
     {
-      "filename" : "QuietListIcon-20@2x.png",
+      "filename" : "ListelloIcon-20@2x.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "20x20"
     },
     {
-      "filename" : "QuietListIcon-29.png",
+      "filename" : "ListelloIcon-29.png",
       "idiom" : "ipad",
       "scale" : "1x",
       "size" : "29x29"
     },
     {
-      "filename" : "QuietListIcon-29@2x.png",
+      "filename" : "ListelloIcon-29@2x.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "29x29"
     },
     {
-      "filename" : "QuietListIcon-40.png",
+      "filename" : "ListelloIcon-40.png",
       "idiom" : "ipad",
       "scale" : "1x",
       "size" : "40x40"
     },
     {
-      "filename" : "QuietListIcon-40@2x.png",
+      "filename" : "ListelloIcon-40@2x.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "40x40"
     },
     {
-      "filename" : "QuietListIcon-76.png",
+      "filename" : "ListelloIcon-76.png",
       "idiom" : "ipad",
       "scale" : "1x",
       "size" : "76x76"
     },
     {
-      "filename" : "QuietListIcon-76@2x.png",
+      "filename" : "ListelloIcon-76@2x.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "76x76"
     },
     {
-      "filename" : "QuietListIcon-83.5@2x.png",
+      "filename" : "ListelloIcon-83.5@2x.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "83.5x83.5"

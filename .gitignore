@@ -11,7 +11,7 @@ node_modules/
 xcuserdata/
 *.ipa
 *.xcarchive
-QuietList.xcodeproj/
+Listello.xcodeproj/
 
 # Local files and signing material
 .DS_Store

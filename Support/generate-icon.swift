@@ -1,9 +1,9 @@
 import AppKit
 
 let sourcePath = CommandLine.arguments.dropFirst().first
-    ?? "Artwork/QuietListSource.jpg"
+    ?? "Artwork/ListelloSource.jpg"
 let outputPath = CommandLine.arguments.dropFirst(2).first
-    ?? "QuietList/Resources/Assets.xcassets/AppIcon.appiconset/QuietListIcon-1024.png"
+    ?? "Listello/Resources/Assets.xcassets/AppIcon.appiconset/ListelloIcon-1024.png"
 
 guard let image = NSImage(contentsOfFile: sourcePath) else {
     fatalError("Unable to read icon artwork at \(sourcePath)")
@@ -20,20 +20,20 @@ try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDir
 
 let variants: [(filename: String, pixels: Int)] = [
     (outputURL.lastPathComponent, 1024),
-    ("QuietListIcon-20.png", 20),
-    ("QuietListIcon-20@2x.png", 40),
-    ("QuietListIcon-20@3x.png", 60),
-    ("QuietListIcon-29.png", 29),
-    ("QuietListIcon-29@2x.png", 58),
-    ("QuietListIcon-29@3x.png", 87),
-    ("QuietListIcon-40.png", 40),
-    ("QuietListIcon-40@2x.png", 80),
-    ("QuietListIcon-40@3x.png", 120),
-    ("QuietListIcon-60@2x.png", 120),
-    ("QuietListIcon-60@3x.png", 180),
-    ("QuietListIcon-76.png", 76),
-    ("QuietListIcon-76@2x.png", 152),
-    ("QuietListIcon-83.5@2x.png", 167),
+    ("ListelloIcon-20.png", 20),
+    ("ListelloIcon-20@2x.png", 40),
+    ("ListelloIcon-20@3x.png", 60),
+    ("ListelloIcon-29.png", 29),
+    ("ListelloIcon-29@2x.png", 58),
+    ("ListelloIcon-29@3x.png", 87),
+    ("ListelloIcon-40.png", 40),
+    ("ListelloIcon-40@2x.png", 80),
+    ("ListelloIcon-40@3x.png", 120),
+    ("ListelloIcon-60@2x.png", 120),
+    ("ListelloIcon-60@3x.png", 180),
+    ("ListelloIcon-76.png", 76),
+    ("ListelloIcon-76@2x.png", 152),
+    ("ListelloIcon-83.5@2x.png", 167),
 ]
 
 let colorSpace = CGColorSpaceCreateDeviceRGB()

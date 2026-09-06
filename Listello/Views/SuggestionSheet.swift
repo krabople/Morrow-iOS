@@ -22,10 +22,7 @@ struct SuggestionSheet: View {
             VStack(spacing: 22) {
                 Spacer()
 
-                Image(systemName: "sparkles")
-                    .font(.system(size: 34, weight: .medium))
-                    .foregroundStyle(Color.quietSage)
-                    .accessibilityHidden(true)
+                ListelloMark(size: 62)
 
                 Text("How about this?")
                     .font(.subheadline.weight(.semibold))
@@ -33,6 +30,7 @@ struct SuggestionSheet: View {
 
                 Text(task.title)
                     .font(.title2.bold())
+                    .foregroundStyle(Color.listelloInk)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
@@ -55,6 +53,7 @@ struct SuggestionSheet: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.listelloTeal)
                 .controlSize(.large)
 
                 Button("Pick Another") {
@@ -65,6 +64,7 @@ struct SuggestionSheet: View {
                 .buttonStyle(.bordered)
             }
             .padding(24)
+            .background(ListelloBackground())
             .navigationTitle("Pick One")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

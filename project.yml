@@ -1,4 +1,4 @@
-name: QuietList
+name: Listello
 options:
   bundleIdPrefix: com.krabople
   deploymentTarget:
@@ -8,24 +8,24 @@ settings:
   base:
     DEVELOPMENT_TEAM: 6YYA8L76Y8
     SWIFT_VERSION: 5.10
-    MARKETING_VERSION: 1.0.0
+    MARKETING_VERSION: 1.1.0
     CURRENT_PROJECT_VERSION: 1
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: false
 targets:
-  QuietList:
+  Listello:
     type: application
     platform: iOS
     sources:
-      - path: QuietList
+      - path: Listello
         excludes:
           - Resources
-      - path: QuietList/Resources
+      - path: Listello/Resources
         buildPhase: resources
     info:
       path: Support/Info.plist
       properties:
-        CFBundleDisplayName: Quiet List
+        CFBundleDisplayName: Listello
         CFBundleIconName: AppIcon
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -41,11 +41,12 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.productivity
-        NSUserNotificationsUsageDescription: Quiet List sends notifications only for tasks and days you choose.
+        NSUserNotificationsUsageDescription: Listello sends notifications only for tasks and days you choose.
+        NSCalendarsFullAccessUsageDescription: Listello uses calendar access only when you choose to show, import, or export calendar events.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.krabople.morrow
-        PRODUCT_NAME: QuietList
+        PRODUCT_NAME: Listello
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: Apple Distribution
         PROVISIONING_PROFILE_SPECIFIER: AppStore Morrow Shared GitHub
@@ -57,14 +58,14 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
     scheme:
       testTargets:
-        - QuietListTests
-  QuietListTests:
+        - ListelloTests
+  ListelloTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - QuietListTests
+      - ListelloTests
     dependencies:
-      - target: QuietList
+      - target: Listello
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.krabople.quietlist.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.krabople.listello.tests

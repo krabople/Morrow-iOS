@@ -1,4 +1,4 @@
-name: Build and upload Quiet List to TestFlight
+name: Build and upload Listello to TestFlight
 
 on:
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
         run: brew install xcodegen
 
       - name: Generate release app icon
-        run: swift Support/generate-icon.swift Artwork/QuietListSource.jpg QuietList/Resources/Assets.xcassets/AppIcon.appiconset/QuietListIcon-1024.png
+        run: swift Support/generate-icon.swift Artwork/ListelloSource.jpg Listello/Resources/Assets.xcassets/AppIcon.appiconset/ListelloIcon-1024.png
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -116,12 +116,12 @@ jobs:
           set -euo pipefail
 
           xcodebuild archive \
-            -project QuietList.xcodeproj \
-            -scheme QuietList \
+            -project Listello.xcodeproj \
+            -scheme Listello \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath .build/Archives/QuietList.xcarchive \
+            -archivePath .build/Archives/Listello.xcarchive \
             -derivedDataPath .build/DerivedData \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
@@ -131,7 +131,7 @@ jobs:
             | xcbeautify --renderer github-actions
 
           xcodebuild -exportArchive \
-            -archivePath .build/Archives/QuietList.xcarchive \
+            -archivePath .build/Archives/Listello.xcarchive \
             -exportOptionsPlist Support/ExportOptions.plist \
             -exportPath .build/Export \
             | xcbeautify --renderer github-actions
@@ -144,7 +144,7 @@ jobs:
           set -euo pipefail
 
           IPA_PATH="${{ steps.build.outputs.ipa-path }}"
-          AUDIT_DIR=$(mktemp -d "$RUNNER_TEMP/quiet-list-ipa-audit.XXXXXX")
+          AUDIT_DIR=$(mktemp -d "$RUNNER_TEMP/listello-ipa-audit.XXXXXX")
           unzip -q "$IPA_PATH" -d "$AUDIT_DIR"
 
           APP_BUNDLE=$(find "$AUDIT_DIR/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)
@@ -184,7 +184,7 @@ jobs:
       - name: Keep signed IPA as a workflow artifact
         uses: actions/upload-artifact@v7
         with:
-          name: QuietList-TestFlight-IPA
+          name: Listello-TestFlight-IPA
           path: ${{ steps.build.outputs.ipa-path }}
           if-no-files-found: error
 

@@ -1,14 +1,16 @@
 import SwiftUI
 
 @main
-struct QuietListApp: App {
+struct ListelloApp: App {
     @StateObject private var store = TaskStore()
+    @StateObject private var calendarService = CalendarService()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(store)
-                .tint(.quietSage)
+                .environmentObject(calendarService)
+                .tint(.listelloTeal)
         }
     }
 }

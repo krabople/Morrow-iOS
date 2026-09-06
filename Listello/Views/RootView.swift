@@ -5,7 +5,7 @@ struct RootView: View {
         TabView {
             TaskListView()
                 .tabItem {
-                    Label("List", systemImage: "checklist")
+                    Label("List", systemImage: "checklist.checked")
                 }
 
             ScheduleView()
@@ -13,5 +13,6 @@ struct RootView: View {
                     Label("Schedule", systemImage: "calendar")
                 }
         }
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
     }
 }
