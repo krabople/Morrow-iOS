@@ -155,3 +155,12 @@ jobs:
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           wait-for-processing: "false"
 
+      - name: Confirm Apple processing completed
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APP_STORE_APP_ID: "6809041904"
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: ruby Support/check-testflight.rb
+
