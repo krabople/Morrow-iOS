@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello 只會在你選擇輸入列表時取用「提醒事項」。";
 "NSCalendarsFullAccessUsageDescription" = "Listello 只會在你選擇顯示或匯出行事曆事件時取用行事曆。";
 "NSUserNotificationsUsageDescription" = "Listello 只會針對你選擇的任務和日期傳送通知。";

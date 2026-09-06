@@ -43,6 +43,7 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         NSUserNotificationsUsageDescription: Listello sends notifications only for tasks and days you choose.
         NSCalendarsFullAccessUsageDescription: Listello uses calendar access only when you choose to show or export calendar events.
+        NSRemindersFullAccessUsageDescription: Listello uses Reminders access only when you choose to import lists.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.krabople.morrow

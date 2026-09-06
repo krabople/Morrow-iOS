@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello रिमाइंडर का उपयोग केवल तभी करता है जब आप सूचियाँ इंपोर्ट करना चुनते हैं।";
 "NSCalendarsFullAccessUsageDescription" = "Listello कैलेंडर का उपयोग केवल तभी करता है जब आप ईवेंट दिखाना या निर्यात करना चुनते हैं।";
 "NSUserNotificationsUsageDescription" = "Listello केवल आपके चुने गए कार्यों और दिनों के लिए सूचनाएँ भेजता है।";

@@ -44,10 +44,18 @@ extension ProjectColor {
         switch self {
         case .teal: .listelloTeal
         case .sky: .listelloSky
+        case .blue: Color(red: 0.12, green: 0.42, blue: 0.92)
+        case .indigo: Color(red: 0.28, green: 0.31, blue: 0.78)
         case .amber: .listelloAmber
         case .coral: .listelloCoral
         case .violet: .listelloViolet
+        case .purple: Color(red: 0.64, green: 0.32, blue: 0.82)
         case .rose: .listelloRose
+        case .red: Color(red: 0.88, green: 0.22, blue: 0.26)
+        case .orange: Color(red: 0.96, green: 0.48, blue: 0.14)
+        case .green: Color(red: 0.20, green: 0.66, blue: 0.33)
+        case .mint: Color(red: 0.16, green: 0.75, blue: 0.55)
+        case .slate: Color(red: 0.38, green: 0.45, blue: 0.56)
         }
     }
 }

@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello получает доступ к «Напоминаниям» только когда вы решаете импортировать списки.";
 "NSCalendarsFullAccessUsageDescription" = "Listello использует доступ к календарю, только когда вы выбираете показ или экспорт событий.";
 "NSUserNotificationsUsageDescription" = "Listello отправляет уведомления только для выбранных вами задач и дней.";

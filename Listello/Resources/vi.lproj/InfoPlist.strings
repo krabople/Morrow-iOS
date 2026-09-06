@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello chỉ truy cập Lời nhắc khi bạn chọn nhập danh sách.";
 "NSCalendarsFullAccessUsageDescription" = "Listello chỉ truy cập lịch khi bạn chọn hiển thị hoặc xuất sự kiện.";
 "NSUserNotificationsUsageDescription" = "Listello chỉ gửi thông báo cho công việc và ngày bạn chọn.";

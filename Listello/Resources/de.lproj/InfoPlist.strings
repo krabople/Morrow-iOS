@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello greift nur auf Erinnerungen zu, wenn du Listen importieren möchtest.";
 "NSCalendarsFullAccessUsageDescription" = "Listello greift nur auf den Kalender zu, wenn du Termine anzeigen oder exportieren möchtest.";
 "NSUserNotificationsUsageDescription" = "Listello sendet Mitteilungen nur für die von dir gewählten Aufgaben und Tage.";

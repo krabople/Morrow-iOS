@@ -19,41 +19,58 @@ struct SuggestionSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 22) {
-                Spacer()
+            VStack(spacing: 18) {
+                ScrollView {
+                    VStack(spacing: 18) {
+                        ListelloMark(size: 62)
 
-                ListelloMark(size: 62)
+                        Text("How about this?")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
 
-                Text("How about this?")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                        Text(task.title)
+                            .font(.title2.bold())
+                            .foregroundStyle(Color.listelloInk)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal)
 
-                Text(task.title)
-                    .font(.title2.bold())
-                    .foregroundStyle(Color.listelloInk)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                        if !task.notes.isEmpty {
+                            VStack(alignment: .leading, spacing: 7) {
+                                Label("Notes", systemImage: "note.text")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Text(task.notes)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(14)
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        }
 
-                if let duration = task.expectedDurationMinutes {
-                    Label(durationLabel(duration), systemImage: "timer")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.listelloSky)
-                } else {
-                    Label("No duration estimate", systemImage: "timer")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        if let duration = task.expectedDurationMinutes {
+                            Label(durationLabel(duration), systemImage: "timer")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.listelloSky)
+                        } else {
+                            Label("No duration estimate", systemImage: "timer")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let scheduledAt = task.scheduledAt {
+                            Label(
+                                scheduledAt.formatted(.dateTime.weekday(.wide).hour().minute()),
+                                systemImage: "clock"
+                            )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
                 }
-
-                if let scheduledAt = task.scheduledAt {
-                    Label(
-                        scheduledAt.formatted(.dateTime.weekday(.wide).hour().minute()),
-                        systemImage: "clock"
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer()
 
                 Button {
                     complete(task)

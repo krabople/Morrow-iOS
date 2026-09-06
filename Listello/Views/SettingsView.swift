@@ -47,6 +47,14 @@ struct SettingsView: View {
                             Toggle("Show task notes", isOn: showNotesBinding)
                         }
 
+                        Section("Import") {
+                            NavigationLink {
+                                RemindersImportView()
+                            } label: {
+                                Label("Import from Reminders", systemImage: "checklist")
+                            }
+                        }
+
                         Section {
                             Picker("Move completed tasks", selection: archiveDelayBinding) {
                                 Text("Never").tag(nil as Int?)

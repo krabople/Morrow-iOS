@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello จะเข้าถึงเตือนความจำเฉพาะเมื่อคุณเลือกนำเข้าลิสต์เท่านั้น";
 "NSCalendarsFullAccessUsageDescription" = "Listello เข้าถึงปฏิทินเมื่อคุณเลือกแสดงหรือส่งออกกิจกรรมเท่านั้น";
 "NSUserNotificationsUsageDescription" = "Listello ส่งการแจ้งเตือนเฉพาะงานและวันที่คุณเลือก";

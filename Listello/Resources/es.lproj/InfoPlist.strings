@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello accede a Recordatorios solo cuando eliges importar listas.";
 "NSCalendarsFullAccessUsageDescription" = "Listello usa el acceso al calendario solo cuando eliges mostrar o exportar eventos.";
 "NSUserNotificationsUsageDescription" = "Listello solo envía notificaciones para las tareas y los días que elijas.";

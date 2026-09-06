@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello gebruikt Herinneringen alleen wanneer je lijsten wilt importeren.";
 "NSCalendarsFullAccessUsageDescription" = "Listello gebruikt Agenda alleen wanneer je agenda-items wilt tonen of exporteren.";
 "NSUserNotificationsUsageDescription" = "Listello stuurt alleen meldingen voor taken en dagen die je kiest.";

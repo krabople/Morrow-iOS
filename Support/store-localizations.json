@@ -1,0 +1,151 @@
+{
+  "languages": [
+    {
+      "locales": ["en-GB", "en-AU", "en-CA"],
+      "subtitle": "Simple tasks, calm planning",
+      "promotionalText": "A colourful, private place for tasks, projects and optional daily planning—without accounts, clutter or subscriptions.",
+      "description": "Listello makes it easy to remember what matters and plan only when you want to. Add a task in one step, organise optional projects, estimate its duration or place it in a clear daily timetable.\n\n• Random pick helps you decide what to do next\n• Recurring tasks return at the right time\n• Optional reminders and Apple Calendar integration\n• Smart clash warnings suggest a free time\n• Searchable archive and flexible automatic clean-up\n• Light, dark and system appearance\n\nYour tasks stay privately on your device. There are no accounts, adverts, analytics or subscriptions.",
+      "keywords": "todo,tasks,planner,schedule,reminders,projects,calendar,productivity,organiser,focus"
+    },
+    {
+      "locales": ["en-US"],
+      "subtitle": "Simple tasks, calm planning",
+      "promotionalText": "A colorful, private place for tasks, projects, and optional daily planning—without accounts, clutter, or subscriptions.",
+      "description": "Listello makes it easy to remember what matters and plan only when you want to. Add a task in one step, organize optional projects, estimate its duration, or place it in a clear daily schedule.\n\n• Random pick helps you decide what to do next\n• Recurring tasks return at the right time\n• Optional reminders and Apple Calendar integration\n• Smart conflict warnings suggest a free time\n• Searchable archive and flexible automatic cleanup\n• Light, dark, and system appearance\n\nYour tasks stay privately on your device. There are no accounts, ads, analytics, or subscriptions.",
+      "keywords": "todo,tasks,planner,schedule,reminders,projects,calendar,productivity,organizer,focus"
+    },
+    {
+      "locales": ["es-ES", "es-MX"],
+      "subtitle": "Tareas simples, planes claros",
+      "promotionalText": "Un espacio colorido y privado para tareas, proyectos y planificación diaria opcional, sin cuentas ni suscripciones.",
+      "description": "Listello te ayuda a recordar lo importante y a planificar solo cuando quieras. Añade una tarea en un paso, organiza proyectos opcionales, estima su duración o colócala en un horario diario claro.\n\n• Elección al azar para decidir qué hacer después\n• Tareas recurrentes que vuelven cuando corresponde\n• Avisos opcionales e integración con Calendario\n• Detección de solapamientos con sugerencias de horas libres\n• Archivo con búsqueda y limpieza automática flexible\n• Modos claro, oscuro y del sistema\n\nTus tareas permanecen privadas en el dispositivo. Sin cuentas, anuncios, analítica ni suscripciones.",
+      "keywords": "tareas,lista,agenda,recordatorios,proyectos,calendario,productividad,planificador,enfoque"
+    },
+    {
+      "locales": ["fr-FR", "fr-CA"],
+      "subtitle": "Tâches simples, esprit libre",
+      "promotionalText": "Un espace coloré et privé pour vos tâches, projets et plannings facultatifs, sans compte ni abonnement.",
+      "description": "Listello vous aide à retenir l’essentiel et à planifier seulement quand vous le souhaitez. Ajoutez une tâche en un geste, classez-la dans un projet facultatif, estimez sa durée ou placez-la dans un emploi du temps clair.\n\n• Choix aléatoire pour décider quoi faire ensuite\n• Tâches récurrentes au bon moment\n• Rappels facultatifs et intégration au calendrier Apple\n• Détection des chevauchements et suggestion d’un créneau libre\n• Archives consultables et nettoyage automatique flexible\n• Apparence claire, sombre ou système\n\nVos tâches restent privées sur votre appareil. Aucun compte, publicité, suivi ou abonnement.",
+      "keywords": "tâches,liste,planning,rappels,projets,calendrier,productivité,organisation,priorités"
+    },
+    {
+      "locales": ["de-DE"],
+      "subtitle": "Einfach planen und erledigen",
+      "promotionalText": "Ein farbenfroher, privater Ort für Aufgaben, Projekte und freiwillige Tagesplanung – ohne Konto oder Abo.",
+      "description": "Mit Listello behältst du Wichtiges im Blick und planst nur, wenn du möchtest. Erfasse Aufgaben mit einem Schritt, ordne sie optional Projekten zu, schätze die Dauer oder setze sie in einen übersichtlichen Tagesplan.\n\n• Zufallsauswahl für die nächste Aufgabe\n• Wiederkehrende Aufgaben zum richtigen Zeitpunkt\n• Optionale Erinnerungen und Apple-Kalender\n• Überschneidungen erkennen und freie Zeiten vorschlagen\n• Durchsuchbares Archiv und flexible automatische Bereinigung\n• Helle, dunkle oder systemweite Darstellung\n\nDeine Aufgaben bleiben privat auf deinem Gerät. Keine Konten, Werbung, Analyse oder Abonnements.",
+      "keywords": "aufgaben,liste,planer,termine,erinnerungen,projekte,kalender,produktivität,fokus"
+    },
+    {
+      "locales": ["it"],
+      "subtitle": "Attività e piani semplici",
+      "promotionalText": "Uno spazio colorato e privato per attività, progetti e pianificazione facoltativa, senza account o abbonamenti.",
+      "description": "Listello ti aiuta a ricordare ciò che conta e a pianificare solo quando vuoi. Aggiungi un’attività in un passaggio, organizzala in un progetto facoltativo, stimane la durata o inseriscila in un programma giornaliero chiaro.\n\n• Scelta casuale per decidere cosa fare dopo\n• Attività ricorrenti al momento giusto\n• Promemoria facoltativi e Calendario Apple\n• Rilevamento dei conflitti e suggerimento di un orario libero\n• Archivio ricercabile e pulizia automatica flessibile\n• Aspetto chiaro, scuro o di sistema\n\nLe attività restano private sul dispositivo. Niente account, pubblicità, analisi o abbonamenti.",
+      "keywords": "attività,lista,agenda,promemoria,progetti,calendario,produttività,pianificatore,priorità"
+    },
+    {
+      "locales": ["pt-BR"],
+      "subtitle": "Tarefas simples, planos leves",
+      "promotionalText": "Um espaço colorido e privado para tarefas, projetos e planejamento opcional, sem contas nem assinaturas.",
+      "description": "O Listello ajuda você a lembrar o que importa e planejar apenas quando quiser. Adicione uma tarefa em um passo, organize projetos opcionais, estime a duração ou coloque-a em uma agenda diária clara.\n\n• Escolha aleatória para decidir o próximo passo\n• Tarefas recorrentes voltam na hora certa\n• Lembretes opcionais e Calendário da Apple\n• Avisos de conflito sugerem um horário livre\n• Arquivo pesquisável e limpeza automática flexível\n• Aparência clara, escura ou do sistema\n\nSuas tarefas ficam privadas no dispositivo. Sem contas, anúncios, análise ou assinaturas.",
+      "keywords": "tarefas,lista,agenda,lembretes,projetos,calendário,produtividade,planejador,foco"
+    },
+    {
+      "locales": ["nl-NL"],
+      "subtitle": "Eenvoudige taken, rustig plan",
+      "promotionalText": "Een kleurrijke, privéplek voor taken, projecten en optionele dagplanning, zonder account of abonnement.",
+      "description": "Listello helpt je onthouden wat telt en laat je alleen plannen wanneer je dat wilt. Voeg een taak in één stap toe, gebruik optionele projecten, schat de duur of zet de taak in een duidelijk dagschema.\n\n• Willekeurige keuze helpt bepalen wat nu komt\n• Terugkerende taken keren op tijd terug\n• Optionele meldingen en Apple Agenda\n• Waarschuwingen bij overlap stellen een vrije tijd voor\n• Doorzoekbaar archief en flexibele automatische opruiming\n• Lichte, donkere of systeemweergave\n\nTaken blijven privé op je apparaat. Geen accounts, advertenties, analyse of abonnementen.",
+      "keywords": "taken,lijst,planning,herinneringen,projecten,agenda,productiviteit,planner,focus"
+    },
+    {
+      "locales": ["pl"],
+      "subtitle": "Proste zadania, spokojny plan",
+      "promotionalText": "Kolorowe i prywatne miejsce na zadania, projekty oraz opcjonalny plan dnia — bez konta i subskrypcji.",
+      "description": "Listello pomaga pamiętać o tym, co ważne, i planować tylko wtedy, gdy chcesz. Dodaj zadanie jednym ruchem, używaj opcjonalnych projektów, oszacuj czas lub umieść je w przejrzystym planie dnia.\n\n• Losowy wybór podpowiada, co zrobić dalej\n• Zadania cykliczne wracają we właściwym czasie\n• Opcjonalne przypomnienia i Kalendarz Apple\n• Ostrzeżenia o nakładaniu proponują wolny termin\n• Przeszukiwalne archiwum i elastyczne automatyczne porządki\n• Jasny, ciemny lub systemowy wygląd\n\nZadania pozostają prywatne na urządzeniu. Bez kont, reklam, analityki i subskrypcji.",
+      "keywords": "zadania,lista,planer,harmonogram,przypomnienia,projekty,kalendarz,produktywność"
+    },
+    {
+      "locales": ["ru"],
+      "subtitle": "Задачи без лишней суеты",
+      "promotionalText": "Красочное и приватное место для задач, проектов и необязательного планирования — без аккаунта и подписки.",
+      "description": "Listello помогает помнить о важном и планировать только тогда, когда это нужно. Добавляйте задачу одним действием, используйте необязательные проекты, оценивайте длительность или помещайте её в понятный распорядок дня.\n\n• Случайный выбор подсказывает следующую задачу\n• Повторяющиеся задачи возвращаются вовремя\n• Необязательные напоминания и Календарь Apple\n• Предупреждения о пересечении предлагают свободное время\n• Архив с поиском и гибкая автоочистка\n• Светлая, тёмная или системная тема\n\nЗадачи остаются приватными на устройстве. Без аккаунтов, рекламы, аналитики и подписок.",
+      "keywords": "задачи,список,план,дела,календарь,фокус"
+    },
+    {
+      "locales": ["uk"],
+      "subtitle": "Завдання без зайвого клопоту",
+      "promotionalText": "Барвисте й приватне місце для завдань, проєктів і необов’язкового планування — без акаунта чи підписки.",
+      "description": "Listello допомагає пам’ятати важливе й планувати лише тоді, коли ви цього хочете. Додавайте завдання одним кроком, використовуйте необов’язкові проєкти, оцінюйте тривалість або розміщуйте його у зрозумілому розкладі дня.\n\n• Випадковий вибір підказує наступне завдання\n• Повторювані завдання повертаються вчасно\n• Необов’язкові нагадування та Календар Apple\n• Попередження про перетин пропонують вільний час\n• Архів із пошуком і гнучке автоочищення\n• Світлий, темний або системний вигляд\n\nЗавдання приватно зберігаються на пристрої. Без акаунтів, реклами, аналітики й підписок.",
+      "keywords": "завдання,список,план,справи,календар,фокус"
+    },
+    {
+      "locales": ["tr"],
+      "subtitle": "Basit görevler, sakin planlar",
+      "promotionalText": "Görevler, projeler ve isteğe bağlı günlük planlama için renkli ve özel bir alan; hesap veya abonelik yok.",
+      "description": "Listello önemli şeyleri hatırlamayı ve yalnızca istediğinizde planlamayı kolaylaştırır. Tek adımda görev ekleyin, isteğe bağlı projeler kullanın, süreyi tahmin edin veya görevi açık bir günlük programa yerleştirin.\n\n• Rastgele seçim sıradaki işi belirler\n• Tekrarlanan görevler doğru zamanda geri gelir\n• İsteğe bağlı anımsatıcılar ve Apple Takvim\n• Çakışma uyarıları boş bir zaman önerir\n• Aranabilir arşiv ve esnek otomatik temizlik\n• Açık, koyu veya sistem görünümü\n\nGörevler aygıtınızda özel kalır. Hesap, reklam, analiz veya abonelik yoktur.",
+      "keywords": "görevler,liste,planlayıcı,program,anımsatıcı,projeler,takvim,üretkenlik,odak"
+    },
+    {
+      "locales": ["ar-SA"],
+      "subtitle": "مهام بسيطة وتخطيط هادئ",
+      "promotionalText": "مكان ملوّن وخاص للمهام والمشاريع والتخطيط اليومي الاختياري، بلا حسابات أو اشتراكات.",
+      "description": "يسهّل Listello تذكّر ما يهم والتخطيط فقط عندما تريد. أضف مهمة بخطوة واحدة، ونظّم مشاريع اختيارية، وقدّر المدة أو ضع المهمة في جدول يومي واضح.\n\n• اختيار عشوائي يساعدك على تحديد المهمة التالية\n• المهام المتكررة تعود في الوقت المناسب\n• تذكيرات اختيارية وتكامل مع تقويم Apple\n• تنبيهات التعارض تقترح وقتًا متاحًا\n• أرشيف قابل للبحث وتنظيف تلقائي مرن\n• مظهر فاتح أو داكن أو حسب النظام\n\nتبقى مهامك خاصة على جهازك. لا حسابات ولا إعلانات ولا تحليلات ولا اشتراكات.",
+      "keywords": "مهام,قائمة,مخطط,جدول,تذكيرات,مشاريع,تقويم,تركيز"
+    },
+    {
+      "locales": ["hi"],
+      "subtitle": "सरल कार्य, सहज योजना",
+      "promotionalText": "कार्यों, प्रोजेक्ट और वैकल्पिक दैनिक योजना के लिए रंगीन और निजी जगह—बिना खाते या सदस्यता के।",
+      "description": "Listello महत्वपूर्ण बातें याद रखना और केवल ज़रूरत होने पर योजना बनाना आसान करता है। एक चरण में कार्य जोड़ें, वैकल्पिक प्रोजेक्ट बनाएँ, समय का अनुमान लगाएँ या साफ़ दैनिक समय-सारणी में रखें।\n\n• बेतरतीब चुनाव अगला कार्य तय करने में मदद करता है\n• दोहराए जाने वाले कार्य सही समय पर लौटते हैं\n• वैकल्पिक सूचनाएँ और Apple कैलेंडर\n• समय टकराने पर खाली समय का सुझाव\n• खोज योग्य संग्रह और लचीली स्वतः सफ़ाई\n• हल्का, गहरा या सिस्टम रूप\n\nकार्य आपके डिवाइस पर निजी रहते हैं। कोई खाता, विज्ञापन, विश्लेषण या सदस्यता नहीं।",
+      "keywords": "कार्य,सूची,योजना,कैलेंडर,ध्यान"
+    },
+    {
+      "locales": ["id"],
+      "subtitle": "Tugas simpel, rencana tenang",
+      "promotionalText": "Tempat penuh warna dan privat untuk tugas, proyek, dan rencana harian opsional—tanpa akun atau langganan.",
+      "description": "Listello memudahkan Anda mengingat hal penting dan merencanakan hanya saat diperlukan. Tambahkan tugas dalam satu langkah, gunakan proyek opsional, perkirakan durasinya, atau letakkan di agenda harian yang jelas.\n\n• Pilihan acak membantu menentukan tugas berikutnya\n• Tugas berulang kembali pada waktu yang tepat\n• Pengingat opsional dan Kalender Apple\n• Peringatan bentrok menyarankan waktu kosong\n• Arsip yang dapat dicari dan pembersihan otomatis fleksibel\n• Tampilan terang, gelap, atau sistem\n\nTugas tetap privat di perangkat Anda. Tanpa akun, iklan, analitik, atau langganan.",
+      "keywords": "tugas,daftar,perencana,jadwal,pengingat,proyek,kalender,produktivitas,fokus"
+    },
+    {
+      "locales": ["ja"],
+      "subtitle": "シンプルなタスクと穏やかな計画",
+      "promotionalText": "タスク、プロジェクト、任意の一日計画をまとめる、カラフルでプライベートな場所。アカウントもサブスクも不要です。",
+      "description": "Listelloなら大切なことを簡単に覚え、必要なときだけ計画できます。ワンタップでタスクを追加し、任意のプロジェクトで整理、所要時間を見積もり、わかりやすい一日の予定に配置できます。\n\n• ランダム選択で次にすることを決定\n• 繰り返しタスクが適切な時刻に再表示\n• 任意の通知とAppleカレンダー連携\n• 重複を検出して空き時間を提案\n• 検索できるアーカイブと柔軟な自動整理\n• ライト、ダーク、システム表示\n\nタスクはデバイス内に非公開で保存されます。アカウント、広告、解析、サブスクリプションはありません。",
+      "keywords": "タスク,やること,リスト,予定,通知,プロジェクト,カレンダー,計画,集中"
+    },
+    {
+      "locales": ["ko"],
+      "subtitle": "간단한 할 일, 편안한 계획",
+      "promotionalText": "할 일, 프로젝트, 선택적인 하루 계획을 위한 다채롭고 비공개인 공간. 계정이나 구독이 필요 없습니다.",
+      "description": "Listello는 중요한 일을 기억하고 원할 때만 계획하도록 도와줍니다. 한 번에 할 일을 추가하고, 선택적인 프로젝트로 정리하고, 소요 시간을 예상하거나 명확한 하루 일정에 배치하세요.\n\n• 무작위 선택으로 다음 할 일 결정\n• 반복 할 일이 알맞은 때에 다시 표시\n• 선택적인 알림과 Apple 캘린더 연동\n• 시간 충돌을 감지하고 빈 시간을 제안\n• 검색 가능한 보관함과 유연한 자동 정리\n• 라이트, 다크 또는 시스템 화면 모드\n\n할 일은 기기에 비공개로 저장됩니다. 계정, 광고, 분석, 구독이 없습니다.",
+      "keywords": "할일,목록,계획,일정,알림,프로젝트,캘린더,생산성,집중,관리"
+    },
+    {
+      "locales": ["th"],
+      "subtitle": "งานเรียบง่าย วางแผนสบาย",
+      "promotionalText": "พื้นที่สีสันสดใสและเป็นส่วนตัวสำหรับงาน โปรเจ็กต์ และแผนรายวันที่เลือกใช้ได้ โดยไม่ต้องมีบัญชีหรือสมัครสมาชิก",
+      "description": "Listello ช่วยให้จดจำเรื่องสำคัญและวางแผนเฉพาะเมื่อคุณต้องการ เพิ่มงานได้ในขั้นตอนเดียว จัดเป็นโปรเจ็กต์ ประเมินระยะเวลา หรือวางลงในตารางประจำวันที่ชัดเจน\n\n• สุ่มเลือกเพื่อช่วยตัดสินใจว่าจะทำอะไรต่อ\n• งานที่ทำซ้ำกลับมาในเวลาที่เหมาะสม\n• การแจ้งเตือนและปฏิทิน Apple ที่เลือกใช้ได้\n• ตรวจจับเวลาทับซ้อนและแนะนำเวลาว่าง\n• คลังที่ค้นหาได้และการจัดเก็บอัตโนมัติ\n• รูปแบบสว่าง มืด หรือตามระบบ\n\nงานจะเก็บเป็นส่วนตัวบนอุปกรณ์ ไม่มีบัญชี โฆษณา การวิเคราะห์ หรือการสมัครสมาชิก",
+      "keywords": "งาน,รายการ,แผน,ปฏิทิน,เตือน,โฟกัส"
+    },
+    {
+      "locales": ["vi"],
+      "subtitle": "Công việc gọn, kế hoạch nhẹ",
+      "promotionalText": "Một nơi đầy màu sắc và riêng tư cho công việc, dự án và kế hoạch hằng ngày tùy chọn, không cần tài khoản hay đăng ký.",
+      "description": "Listello giúp bạn dễ dàng nhớ điều quan trọng và chỉ lên kế hoạch khi muốn. Thêm công việc trong một bước, dùng dự án tùy chọn, ước tính thời lượng hoặc đặt vào lịch trình hằng ngày rõ ràng.\n\n• Chọn ngẫu nhiên để quyết định việc tiếp theo\n• Công việc lặp lại trở lại đúng lúc\n• Nhắc nhở tùy chọn và Lịch Apple\n• Cảnh báo trùng giờ đề xuất thời gian trống\n• Kho lưu trữ có thể tìm kiếm và tự động dọn dẹp linh hoạt\n• Giao diện sáng, tối hoặc theo hệ thống\n\nCông việc được giữ riêng tư trên thiết bị. Không tài khoản, quảng cáo, phân tích hay đăng ký.",
+      "keywords": "công việc,danh sách,kế hoạch,lịch,nhắc nhở,dự án,năng suất,tập trung"
+    },
+    {
+      "locales": ["zh-Hans"],
+      "subtitle": "简单任务，轻松规划",
+      "promotionalText": "一个多彩、私密的任务空间，可管理项目和可选的每日计划，无需账户或订阅。",
+      "description": "Listello 让你轻松记住重要事项，只在需要时进行规划。一键添加任务，用可选项目整理，估算时长，或将任务放入清晰的每日日程。\n\n• 随机选择帮你决定下一步\n• 重复任务会在适当时间再次出现\n• 可选提醒与 Apple 日历集成\n• 检测时间冲突并建议空闲时段\n• 可搜索的归档和灵活的自动整理\n• 浅色、深色或跟随系统外观\n\n任务只会私密地保存在你的设备上。没有账户、广告、分析或订阅。",
+      "keywords": "任务,待办,清单,计划,提醒,项目,日历,效率,时间管理,专注"
+    },
+    {
+      "locales": ["zh-Hant"],
+      "subtitle": "簡單任務，輕鬆規劃",
+      "promotionalText": "一個多彩、私密的任務空間，可管理專案和選用的每日計畫，不需帳號或訂閱。",
+      "description": "Listello 讓你輕鬆記住重要事項，只在需要時進行規劃。一鍵加入任務，用選用的專案整理，估算時長，或將任務放入清晰的每日排程。\n\n• 隨機選擇幫你決定下一步\n• 重複任務會在適當時間再次出現\n• 選用的提醒與 Apple 行事曆整合\n• 偵測時間衝突並建議空閒時段\n• 可搜尋的封存區與彈性自動整理\n• 淺色、深色或跟隨系統外觀\n\n任務只會私密地保存在你的裝置上。沒有帳號、廣告、分析或訂閱。",
+      "keywords": "任務,待辦,列表,計畫,提醒,專案,行事曆,效率,時間管理,專注"
+    }
+  ]
+}

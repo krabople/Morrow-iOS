@@ -119,19 +119,82 @@ struct ProjectItem: Identifiable, Codable, Equatable, Hashable {
     var name: String
     var color: ProjectColor
     let createdAt: Date
+    var kind: ProjectKind
+    var hidesFromAllTasks: Bool
+    var sortIndex: Int?
 
-    init(id: UUID = UUID(), name: String, color: ProjectColor, createdAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        color: ProjectColor,
+        createdAt: Date = Date(),
+        kind: ProjectKind = .project,
+        hidesFromAllTasks: Bool? = nil,
+        sortIndex: Int? = nil
+    ) {
         self.id = id
         self.name = name
         self.color = color
         self.createdAt = createdAt
+        self.kind = kind
+        self.hidesFromAllTasks = hidesFromAllTasks ?? (kind == .list)
+        self.sortIndex = sortIndex
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, color, createdAt, kind, hidesFromAllTasks, sortIndex
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        color = try values.decode(ProjectColor.self, forKey: .color)
+        createdAt = try values.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        kind = try values.decodeIfPresent(ProjectKind.self, forKey: .kind) ?? .project
+        hidesFromAllTasks = try values.decodeIfPresent(Bool.self, forKey: .hidesFromAllTasks) ?? false
+        sortIndex = try values.decodeIfPresent(Int.self, forKey: .sortIndex)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encode(color, forKey: .color)
+        try values.encode(createdAt, forKey: .createdAt)
+        try values.encode(kind, forKey: .kind)
+        try values.encode(hidesFromAllTasks, forKey: .hidesFromAllTasks)
+        try values.encodeIfPresent(sortIndex, forKey: .sortIndex)
     }
 }
 
-enum ProjectColor: String, CaseIterable, Codable, Identifiable {
-    case teal, sky, amber, coral, violet, rose
+enum ProjectKind: String, CaseIterable, Codable, Identifiable {
+    case project
+    case list
 
     var id: Self { self }
+    var title: String { L10n.text(rawValue == "project" ? "Project" : "List") }
+    var systemImage: String { self == .project ? "folder.fill" : "list.bullet" }
+    var itemName: String { L10n.text(self == .project ? "task" : "item") }
+    var itemNamePlural: String { L10n.text(self == .project ? "tasks" : "items") }
+}
+
+enum ProjectDeletionDisposition: Equatable {
+    case archiveContents
+    case keepUnassigned
+}
+
+enum ProjectColor: String, CaseIterable, Codable, Identifiable {
+    case teal, sky, blue, indigo, violet, purple, rose, red, coral, orange, amber, green, mint, slate
+
+    var id: Self { self }
+}
+
+struct ImportedReminder: Equatable, Sendable {
+    let title: String
+    let notes: String
+    let dueDate: Date?
+    let isImportant: Bool
 }
 
 enum TaskListMode: String, CaseIterable, Identifiable {
@@ -254,6 +317,32 @@ struct ListelloPreferences: Codable, Equatable {
     }
 }
 
+struct ScheduleBreakItem: Identifiable, Codable, Equatable, Hashable {
+    let id: UUID
+    var title: String
+    var startDate: Date
+    var durationMinutes: Int
+    let createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        title: String = L10n.text("Break"),
+        startDate: Date,
+        durationMinutes: Int = 30,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title
+        self.startDate = startDate
+        self.durationMinutes = durationMinutes
+        self.createdAt = createdAt
+    }
+
+    var endDate: Date {
+        startDate.addingTimeInterval(TimeInterval(max(1, durationMinutes) * 60))
+    }
+}
+
 struct CalendarEntry: Identifiable, Equatable {
     let id: String
     let title: String
@@ -279,21 +368,24 @@ struct ScheduleConflict: Identifiable, Equatable {
 struct ListelloState: Codable {
     var tasks: [TaskItem]
     var projects: [ProjectItem]
+    var scheduleBreaks: [ScheduleBreakItem]
     var notificationDayKeys: Set<String>
     var preferences: ListelloPreferences
 
     private enum CodingKeys: String, CodingKey {
-        case tasks, projects, notificationDayKeys, preferences
+        case tasks, projects, scheduleBreaks, notificationDayKeys, preferences
     }
 
     init(
         tasks: [TaskItem],
         projects: [ProjectItem],
+        scheduleBreaks: [ScheduleBreakItem] = [],
         notificationDayKeys: Set<String>,
         preferences: ListelloPreferences = ListelloPreferences()
     ) {
         self.tasks = tasks
         self.projects = projects
+        self.scheduleBreaks = scheduleBreaks
         self.notificationDayKeys = notificationDayKeys
         self.preferences = preferences
     }
@@ -302,6 +394,7 @@ struct ListelloState: Codable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         tasks = try values.decodeIfPresent([TaskItem].self, forKey: .tasks) ?? []
         projects = try values.decodeIfPresent([ProjectItem].self, forKey: .projects) ?? []
+        scheduleBreaks = try values.decodeIfPresent([ScheduleBreakItem].self, forKey: .scheduleBreaks) ?? []
         notificationDayKeys = try values.decodeIfPresent(Set<String>.self, forKey: .notificationDayKeys) ?? []
         preferences = try values.decodeIfPresent(ListelloPreferences.self, forKey: .preferences) ?? ListelloPreferences()
     }

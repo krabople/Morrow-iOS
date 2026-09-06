@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "Listello mengakses Pengingat hanya saat Anda memilih untuk mengimpor daftar.";
 "NSCalendarsFullAccessUsageDescription" = "Listello mengakses kalender hanya saat Anda memilih untuk menampilkan atau mengekspor acara.";
 "NSUserNotificationsUsageDescription" = "Listello mengirim notifikasi hanya untuk tugas dan hari yang Anda pilih.";

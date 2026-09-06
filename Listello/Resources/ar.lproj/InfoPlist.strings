@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Listello";
+"NSRemindersFullAccessUsageDescription" = "يستخدم Listello الوصول إلى التذكيرات فقط عندما تختار استيراد القوائم.";
 "NSCalendarsFullAccessUsageDescription" = "يستخدم Listello الوصول إلى التقويم فقط عندما تختار عرض الأحداث أو تصديرها.";
 "NSUserNotificationsUsageDescription" = "يرسل Listello إشعارات للمهام والأيام التي تختارها فقط.";

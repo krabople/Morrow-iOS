@@ -6,6 +6,7 @@ import UserNotifications
 final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem] = []
     @Published private(set) var projects: [ProjectItem] = []
+    @Published private(set) var scheduleBreaks: [ScheduleBreakItem] = []
     @Published private(set) var notificationDayKeys: Set<String> = []
     @Published private(set) var preferences = ListelloPreferences()
 
@@ -43,6 +44,7 @@ final class TaskStore: ObservableObject {
         load()
         normalizePreferences()
         normalizeSortIndices()
+        normalizeProjectSortIndices()
         applyAutomaticArchiving()
         if managesNotifications {
             Task { await rebuildNotifications(requestPermission: false) }
@@ -55,13 +57,14 @@ final class TaskStore: ObservableObject {
                 !task.isCompleted
                     && !task.isArchived
                     && (task.hiddenUntil ?? .distantPast) <= Date()
+                    && !isHiddenFromAllTasks(task)
             }
             .sorted(by: listOrder)
     }
 
     var completedTasks: [TaskItem] {
         tasks
-            .filter { $0.isCompleted && !$0.isArchived }
+            .filter { $0.isCompleted && !$0.isArchived && !isHiddenFromAllTasks($0) }
             .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
     }
 
@@ -71,15 +74,28 @@ final class TaskStore: ObservableObject {
             .sorted { ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast) }
     }
 
+    var orderedProjects: [ProjectItem] {
+        projects.sorted { lhs, rhs in
+            let left = lhs.sortIndex ?? Int.max
+            let right = rhs.sortIndex ?? Int.max
+            return left == right ? lhs.createdAt < rhs.createdAt : left < right
+        }
+    }
+
     @discardableResult
-    func addTask(title: String, scheduledAt: Date? = nil, projectID: UUID? = nil) -> TaskItem? {
+    func addTask(
+        title: String,
+        scheduledAt: Date? = nil,
+        projectID: UUID? = nil,
+        usesDefaultDuration: Bool = true
+    ) -> TaskItem? {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else { return nil }
 
         let task = TaskItem(
             title: cleanTitle,
             scheduledAt: scheduledAt,
-            expectedDurationMinutes: preferences.defaultDurationMinutes,
+            expectedDurationMinutes: usesDefaultDuration ? preferences.defaultDurationMinutes : nil,
             projectID: validProjectID(projectID),
             sortIndex: nextSortIndex
         )
@@ -213,16 +229,24 @@ final class TaskStore: ObservableObject {
     }
 
     func filteredTasks(mode: TaskListMode, query: String, projectID: UUID?) -> [TaskItem] {
-        let source = mode == .active ? activeTasks : completedTasks
+        let source = tasks.filter { task in
+            guard !task.isArchived else { return false }
+            if mode == .active {
+                return !task.isCompleted && (task.hiddenUntil ?? .distantPast) <= Date()
+            }
+            return task.isCompleted
+        }
         let cleanQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return source.filter { task in
-            let matchesProject = projectID == nil || task.projectID == projectID
+        let filtered = source.filter { task in
+            let matchesProject = projectID.map { task.projectID == $0 } ?? !isHiddenFromAllTasks(task)
             let matchesQuery = cleanQuery.isEmpty
                 || task.title.localizedCaseInsensitiveContains(cleanQuery)
                 || task.notes.localizedCaseInsensitiveContains(cleanQuery)
             return matchesProject && matchesQuery
         }
+        if mode == .active { return filtered.sorted(by: listOrder) }
+        return filtered.sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
     }
 
     func tasks(on day: Date) -> [TaskItem] {
@@ -238,6 +262,30 @@ final class TaskStore: ObservableObject {
                 return scheduledTask
             }
             .sorted { ($0.scheduledAt ?? .distantFuture) < ($1.scheduledAt ?? .distantFuture) }
+    }
+
+    func breaks(on day: Date) -> [ScheduleBreakItem] {
+        scheduleBreaks
+            .filter { calendar.isDate($0.startDate, inSameDayAs: day) }
+            .sorted { $0.startDate < $1.startDate }
+    }
+
+    func saveBreak(_ scheduleBreak: ScheduleBreakItem) {
+        var cleanBreak = scheduleBreak
+        cleanBreak.title = scheduleBreak.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanBreak.title.isEmpty { cleanBreak.title = L10n.text("Break") }
+        cleanBreak.durationMinutes = max(1, min(1_440, cleanBreak.durationMinutes))
+        if let index = scheduleBreaks.firstIndex(where: { $0.id == cleanBreak.id }) {
+            scheduleBreaks[index] = cleanBreak
+        } else {
+            scheduleBreaks.append(cleanBreak)
+        }
+        persist()
+    }
+
+    func deleteBreak(_ scheduleBreak: ScheduleBreakItem) {
+        scheduleBreaks.removeAll { $0.id == scheduleBreak.id }
+        persist()
     }
 
     func suggestedTask(from visibleTasks: [TaskItem], excluding excludedID: UUID? = nil) -> TaskItem? {
@@ -266,10 +314,21 @@ final class TaskStore: ObservableObject {
     }
 
     @discardableResult
-    func addProject(name: String, color: ProjectColor) -> ProjectItem? {
+    func addProject(
+        name: String,
+        color: ProjectColor,
+        kind: ProjectKind = .project,
+        hidesFromAllTasks: Bool? = nil
+    ) -> ProjectItem? {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanName.isEmpty else { return nil }
-        let project = ProjectItem(name: cleanName, color: color)
+        let project = ProjectItem(
+            name: cleanName,
+            color: color,
+            kind: kind,
+            hidesFromAllTasks: hidesFromAllTasks,
+            sortIndex: nextProjectSortIndex
+        )
         projects.append(project)
         persist()
         return project
@@ -281,32 +340,141 @@ final class TaskStore: ObservableObject {
         guard let index = projects.firstIndex(where: { $0.id == project.id }) else { return }
         projects[index].name = cleanName
         projects[index].color = project.color
+        projects[index].kind = project.kind
+        projects[index].hidesFromAllTasks = project.hidesFromAllTasks
         persist()
     }
 
-    func deleteProject(_ project: ProjectItem) {
+    func deleteProject(_ project: ProjectItem, disposition: ProjectDeletionDisposition) {
+        let now = Date()
         projects.removeAll { $0.id == project.id }
         for index in tasks.indices where tasks[index].projectID == project.id {
             tasks[index].projectID = nil
+            if disposition == .archiveContents {
+                tasks[index].archivedAt = now
+            }
+        }
+        persist()
+        rebuildNotificationsSoon()
+    }
+
+    @discardableResult
+    func importReminders(_ reminders: [ImportedReminder], into project: ProjectItem) -> Int {
+        guard projects.contains(where: { $0.id == project.id }) else { return 0 }
+        var importedCount = 0
+        for reminder in reminders {
+            let cleanTitle = reminder.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanTitle.isEmpty else { continue }
+            tasks.append(TaskItem(
+                title: cleanTitle,
+                notes: reminder.notes,
+                scheduledAt: reminder.dueDate,
+                expectedDurationMinutes: project.kind == .list ? nil : preferences.defaultDurationMinutes,
+                isImportant: reminder.isImportant,
+                projectID: project.id,
+                sortIndex: nextSortIndex
+            ))
+            importedCount += 1
+        }
+        persist()
+        return importedCount
+    }
+
+    func moveTasks(_ source: IndexSet, to destination: Int, within visibleTasks: [TaskItem]) {
+        let reordered = moved(visibleTasks, from: source, to: destination)
+        let visibleIDs = Set(visibleTasks.map(\.id))
+        var replacements = reordered.makeIterator()
+        var allOrdered = tasks.sorted(by: listOrder)
+        for index in allOrdered.indices where visibleIDs.contains(allOrdered[index].id) {
+            if let replacement = replacements.next() { allOrdered[index] = replacement }
+        }
+        for (index, task) in allOrdered.enumerated() {
+            if let storedIndex = tasks.firstIndex(where: { $0.id == task.id }) {
+                tasks[storedIndex].sortIndex = index
+            }
         }
         persist()
     }
 
+    func moveTask(_ draggedID: UUID, relativeTo targetID: UUID, within visibleTasks: [TaskItem]) {
+        guard
+            draggedID != targetID,
+            let source = visibleTasks.firstIndex(where: { $0.id == draggedID }),
+            let target = visibleTasks.firstIndex(where: { $0.id == targetID })
+        else { return }
+        let destination = source < target ? target + 1 : target
+        moveTasks(IndexSet(integer: source), to: destination, within: visibleTasks)
+    }
+
+    func moveProjects(_ source: IndexSet, to destination: Int) {
+        let reordered = moved(orderedProjects, from: source, to: destination)
+        for (index, project) in reordered.enumerated() {
+            if let storedIndex = projects.firstIndex(where: { $0.id == project.id }) {
+                projects[storedIndex].sortIndex = index
+            }
+        }
+        persist()
+    }
+
+    func moveProject(_ draggedID: UUID, relativeTo targetID: UUID) {
+        let visibleProjects = orderedProjects
+        guard
+            draggedID != targetID,
+            let source = visibleProjects.firstIndex(where: { $0.id == draggedID }),
+            let target = visibleProjects.firstIndex(where: { $0.id == targetID })
+        else { return }
+        let destination = source < target ? target + 1 : target
+        moveProjects(IndexSet(integer: source), to: destination)
+    }
+
     func scheduleConflict(for task: TaskItem, calendarEntries: [CalendarEntry]) -> ScheduleConflict? {
         guard let chosenStart = task.scheduledAt, let durationMinutes = task.expectedDurationMinutes else { return nil }
+        return scheduleConflict(
+            chosenStart: chosenStart,
+            durationMinutes: durationMinutes,
+            excludingTaskID: task.id,
+            excludingBreakID: nil,
+            calendarEventIdentifier: task.calendarEventIdentifier,
+            calendarEntries: calendarEntries
+        )
+    }
+
+    func scheduleConflict(for scheduleBreak: ScheduleBreakItem, calendarEntries: [CalendarEntry]) -> ScheduleConflict? {
+        scheduleConflict(
+            chosenStart: scheduleBreak.startDate,
+            durationMinutes: scheduleBreak.durationMinutes,
+            excludingTaskID: nil,
+            excludingBreakID: scheduleBreak.id,
+            calendarEventIdentifier: nil,
+            calendarEntries: calendarEntries
+        )
+    }
+
+    private func scheduleConflict(
+        chosenStart: Date,
+        durationMinutes: Int,
+        excludingTaskID: UUID?,
+        excludingBreakID: UUID?,
+        calendarEventIdentifier: String?,
+        calendarEntries: [CalendarEntry]
+    ) -> ScheduleConflict? {
         let duration = TimeInterval(max(1, durationMinutes) * 60)
         let chosenEnd = chosenStart.addingTimeInterval(duration)
 
         var busySlots: [(title: String, start: Date, end: Date)] = tasks(on: chosenStart).compactMap { existingTask in
             guard
-                existingTask.id != task.id,
+                existingTask.id != excludingTaskID,
                 let start = existingTask.scheduledAt,
                 let existingDuration = existingTask.expectedDurationMinutes
             else { return nil }
             return (existingTask.title, start, start.addingTimeInterval(TimeInterval(existingDuration * 60)))
         }
+        busySlots.append(contentsOf: breaks(on: chosenStart).compactMap { existingBreak in
+            guard existingBreak.id != excludingBreakID else { return nil }
+            return (existingBreak.title, existingBreak.startDate, existingBreak.endDate)
+        })
         busySlots.append(contentsOf: calendarEntries.compactMap { entry in
-            guard !entry.isAllDay, entry.id != task.calendarEventIdentifier else { return nil }
+            guard !entry.isAllDay, entry.id != calendarEventIdentifier else { return nil }
             return (entry.title, entry.startDate, entry.endDate)
         })
 
@@ -361,14 +529,23 @@ final class TaskStore: ObservableObject {
         return true
     }
 
-    func suggestedScheduleTime(on day: Date) -> Date {
+    func suggestedScheduleTime(on day: Date, excluding taskID: UUID? = nil) -> Date {
+        let fallback: Date
         if calendar.isDateInToday(day) {
             let nextHour = calendar.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
             let parts = calendar.dateComponents([.year, .month, .day, .hour], from: nextHour)
-            return calendar.date(from: parts) ?? nextHour
+            fallback = calendar.date(from: parts) ?? nextHour
+        } else {
+            fallback = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
         }
 
-        return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
+        let mostRecentlyAdded = tasks(on: day)
+            .filter { $0.id != taskID }
+            .max { $0.createdAt < $1.createdAt }
+        guard let mostRecentlyAdded, let start = mostRecentlyAdded.scheduledAt else { return fallback }
+        let duration = mostRecentlyAdded.expectedDurationMinutes ?? preferences.defaultDurationMinutes
+        let finish = start.addingTimeInterval(TimeInterval(max(1, duration) * 60))
+        return max(finish, fallback)
     }
 
     func setDurationOptions(_ options: [Int]) {
@@ -443,6 +620,10 @@ final class TaskStore: ObservableObject {
         (tasks.compactMap(\.sortIndex).max() ?? -1) + 1
     }
 
+    private var nextProjectSortIndex: Int {
+        (projects.compactMap(\.sortIndex).max() ?? -1) + 1
+    }
+
     private func listOrder(_ lhs: TaskItem, _ rhs: TaskItem) -> Bool {
         if preferences.importantTasksFirst, lhs.isImportant != rhs.isImportant {
             return lhs.isImportant && !rhs.isImportant
@@ -456,6 +637,22 @@ final class TaskStore: ObservableObject {
     private func validProjectID(_ id: UUID?) -> UUID? {
         guard let id, projects.contains(where: { $0.id == id }) else { return nil }
         return id
+    }
+
+    private func isHiddenFromAllTasks(_ task: TaskItem) -> Bool {
+        guard let projectID = task.projectID else { return false }
+        return projects.first(where: { $0.id == projectID })?.hidesFromAllTasks == true
+    }
+
+    private func moved<Element>(_ values: [Element], from source: IndexSet, to destination: Int) -> [Element] {
+        guard !source.isEmpty else { return values }
+        let moving = source.map { values[$0] }
+        var result = values
+        for index in source.sorted(by: >) { result.remove(at: index) }
+        let removedBeforeDestination = source.filter { $0 < destination }.count
+        let insertionIndex = min(max(0, destination - removedBeforeDestination), result.count)
+        result.insert(contentsOf: moving, at: insertionIndex)
+        return result
     }
 
     private func occurrence(of task: TaskItem, on day: Date) -> Date? {
@@ -545,6 +742,7 @@ final class TaskStore: ObservableObject {
 
         tasks = state.tasks
         projects = state.projects
+        scheduleBreaks = state.scheduleBreaks
         notificationDayKeys = state.notificationDayKeys
         preferences = state.preferences
     }
@@ -575,10 +773,21 @@ final class TaskStore: ObservableObject {
         if !tasks.isEmpty { persist() }
     }
 
+    private func normalizeProjectSortIndices() {
+        let orderedIDs = orderedProjects.map(\.id)
+        for (index, id) in orderedIDs.enumerated() {
+            if let projectIndex = projects.firstIndex(where: { $0.id == id }) {
+                projects[projectIndex].sortIndex = index
+            }
+        }
+        if !projects.isEmpty { persist() }
+    }
+
     private func persist() {
         let state = ListelloState(
             tasks: tasks,
             projects: projects,
+            scheduleBreaks: scheduleBreaks,
             notificationDayKeys: notificationDayKeys,
             preferences: preferences
         )

@@ -4,6 +4,7 @@ struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: TaskStore
     @EnvironmentObject private var calendarService: CalendarService
+    @AppStorage("showsCalendarEvents") private var showsCalendarEvents = false
 
     @State private var draft: TaskItem
     @State private var showsDeleteConfirmation = false
@@ -24,7 +25,7 @@ struct TaskEditorView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Task", text: $draft.title)
+                    TextField(editorItemName, text: $draft.title)
                         .font(.headline)
 
                     TextField("Notes (optional)", text: $draft.notes, axis: .vertical)
@@ -34,10 +35,10 @@ struct TaskEditorView: View {
                 Section("Details") {
                     Toggle("Important", isOn: $draft.isImportant)
 
-                    Picker("Project", selection: $draft.projectID) {
-                        Text("No Project").tag(nil as UUID?)
-                        ForEach(store.projects) { project in
-                            Label(project.name, systemImage: "folder.fill")
+                    Picker("Project or list", selection: $draft.projectID) {
+                        Text("No project or list").tag(nil as UUID?)
+                        ForEach(store.orderedProjects) { project in
+                            Label(project.name, systemImage: project.kind.systemImage)
                                 .tag(project.id as UUID?)
                         }
                     }
@@ -115,7 +116,7 @@ struct TaskEditorView: View {
             }
             .scrollContentBackground(.hidden)
             .background(ListelloBackground())
-            .navigationTitle(L10n.text(isNew ? "New Task" : "Task"))
+            .navigationTitle(isNew ? L10n.text("New Task") : editorItemName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -180,12 +181,17 @@ struct TaskEditorView: View {
         return start.addingTimeInterval(TimeInterval(minutes * 60))
     }
 
+    private var editorItemName: String {
+        guard store.project(withID: draft.projectID)?.kind == .list else { return L10n.text("Task") }
+        return L10n.text("item").localizedCapitalized
+    }
+
     private var scheduleBinding: Binding<Bool> {
         Binding(
             get: { draft.scheduledAt != nil },
             set: { enabled in
                 if enabled {
-                    draft.scheduledAt = Calendar.current.date(byAdding: .hour, value: 1, to: Date())
+                    draft.scheduledAt = store.suggestedScheduleTime(on: Date(), excluding: draft.id)
                     draft.notifiesAtScheduledTime = store.preferences.notifyNewScheduledTasks
                 } else {
                     draft.scheduledAt = nil
@@ -240,7 +246,7 @@ struct TaskEditorView: View {
         isSaving = true
         Task {
             let calendarEntries: [CalendarEntry]
-            if let scheduledAt = draft.scheduledAt, calendarService.hasFullAccess {
+            if showsCalendarEvents, let scheduledAt = draft.scheduledAt, calendarService.hasFullAccess {
                 calendarEntries = await calendarService.entries(on: scheduledAt, requestAccess: false)
             } else {
                 calendarEntries = []

@@ -32,7 +32,7 @@ struct TaskListView: View {
 
                     Picker("Tasks", selection: $mode) {
                         ForEach(TaskListMode.allCases) { option in
-                            Text(option.title).tag(option)
+                            Text(modeTitle(option)).tag(option)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -67,14 +67,19 @@ struct TaskListView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     if mode == .active, !visibleTasks.isEmpty {
-                        Button("Random pick") {
+                        Button {
                             suggestion = store.suggestedTask(from: visibleTasks)
+                        } label: {
+                            Image(systemName: "dice.fill")
                         }
-                        .fontWeight(.semibold)
+                        .accessibilityLabel("Random pick")
                     }
                 }
             }
-            .searchable(text: $query, prompt: "Search tasks")
+            .searchable(
+                text: $query,
+                prompt: L10n.text(selectedProject?.kind == .list ? "Search items" : "Search tasks")
+            )
             .safeAreaInset(edge: .bottom) {
                 if mode == .active {
                     quickAddBar
@@ -124,7 +129,8 @@ struct TaskListView: View {
                 TaskRow(
                     task: task,
                     project: store.project(withID: task.projectID),
-                    showsNotes: store.preferences.showNotesInList
+                    showsNotes: store.preferences.showNotesInList,
+                    reorderIdentifier: mode == .active ? "task:\(task.id.uuidString)" : nil
                 ) {
                     completeTask(task)
                 }
@@ -160,6 +166,18 @@ struct TaskListView: View {
                         Label("Delete", systemImage: "trash")
                     }
                 }
+                .dropDestination(for: String.self) { identifiers, _ in
+                    guard
+                        mode == .active,
+                        let identifier = identifiers.first,
+                        identifier.hasPrefix("task:"),
+                        let draggedID = UUID(uuidString: String(identifier.dropFirst(5)))
+                    else { return false }
+                    withAnimation(.snappy) {
+                        store.moveTask(draggedID, relativeTo: task.id, within: visibleTasks)
+                    }
+                    return true
+                }
             }
         }
         .listStyle(.plain)
@@ -178,9 +196,7 @@ struct TaskListView: View {
     private var quickAddBar: some View {
         HStack(spacing: 10) {
             TextField(
-                selectedProject == nil
-                    ? L10n.text("Add a task")
-                    : L10n.format("add_to_project", selectedProject?.name ?? L10n.text("project")),
+                quickAddPrompt,
                 text: $newTaskTitle
             )
                 .textInputAutocapitalization(.sentences)
@@ -196,7 +212,7 @@ struct TaskListView: View {
                     .shadow(color: quickAddColor.opacity(0.25), radius: 8, y: 4)
             }
             .disabled(newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .accessibilityLabel("Add task")
+            .accessibilityLabel(L10n.text(selectedProject?.kind == .list ? "Add item" : "Add task"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -209,7 +225,10 @@ struct TaskListView: View {
 
     private var headerSubtitle: String {
         if let selectedProject {
-            let count = store.activeTasks.filter { $0.projectID == selectedProject.id }.count
+            let count = store.filteredTasks(mode: .active, query: "", projectID: selectedProject.id).count
+            if selectedProject.kind == .list {
+                return L10n.format(count == 1 ? "one_item_in_list" : "items_in_list", count)
+            }
             return L10n.format(count == 1 ? "one_open_task_in_project" : "open_tasks_in_project", count)
         }
         return L10n.text("Plan simply. Get things done.")
@@ -220,19 +239,39 @@ struct TaskListView: View {
     }
 
     private var emptyTitle: String {
-        L10n.text(mode == .active ? "Nothing to do" : "Nothing completed yet")
+        if selectedProject?.kind == .list, mode == .active { return L10n.text("No items yet") }
+        return L10n.text(mode == .active ? "Nothing to do" : "Nothing completed yet")
     }
 
     private var emptyMessage: String {
         if mode == .active, selectedProject != nil {
-            return L10n.text("Add the first task for this project below.")
+            return L10n.text(selectedProject?.kind == .list
+                ? "Add the first item to this list below."
+                : "Add the first task for this project below.")
         }
         return L10n.text(mode == .active ? "Add a task below. Scheduling is always optional." : "Completed tasks will appear here.")
     }
 
     private func addTask() {
-        guard store.addTask(title: newTaskTitle, projectID: selectedProjectID) != nil else { return }
+        guard store.addTask(
+            title: newTaskTitle,
+            projectID: selectedProjectID,
+            usesDefaultDuration: selectedProject?.kind != .list
+        ) != nil else { return }
         newTaskTitle = ""
+    }
+
+    private var quickAddPrompt: String {
+        guard let selectedProject else { return L10n.text("Add a task") }
+        return L10n.format(
+            selectedProject.kind == .list ? "add_to_list" : "add_to_project",
+            selectedProject.name
+        )
+    }
+
+    private func modeTitle(_ option: TaskListMode) -> String {
+        guard option == .active, let selectedProject else { return option.title }
+        return L10n.text(selectedProject.kind == .list ? "Items" : "Tasks")
     }
 
     private func completeTask(_ task: TaskItem) {

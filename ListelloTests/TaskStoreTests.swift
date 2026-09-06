@@ -52,6 +52,87 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(store.filteredTasks(mode: .active, query: "", projectID: nil).count, 2)
     }
 
+    func testListsDefaultToHiddenAndItemsDefaultToNoEstimate() {
+        let store = makeStore()
+        let watchList = store.addProject(name: "Movies", color: .violet, kind: .list)!
+        let item = store.addTask(
+            title: "The Third Man",
+            projectID: watchList.id,
+            usesDefaultDuration: false
+        )
+
+        XCTAssertTrue(watchList.hidesFromAllTasks)
+        XCTAssertNil(item?.expectedDurationMinutes)
+        XCTAssertTrue(store.activeTasks.isEmpty)
+        XCTAssertEqual(
+            store.filteredTasks(mode: .active, query: "", projectID: watchList.id).map(\.title),
+            ["The Third Man"]
+        )
+    }
+
+    func testProjectVisibilityAndDeletionChoices() {
+        let store = makeStore()
+        let privateProject = store.addProject(
+            name: "Private",
+            color: .indigo,
+            hidesFromAllTasks: true
+        )!
+        store.addTask(title: "Secret task", projectID: privateProject.id)
+        store.deleteProject(privateProject, disposition: .archiveContents)
+
+        XCTAssertEqual(store.archivedTasks.map(\.title), ["Secret task"])
+
+        let sharedProject = store.addProject(name: "Shared", color: .green)!
+        store.addTask(title: "Visible task", projectID: sharedProject.id)
+        store.deleteProject(sharedProject, disposition: .keepUnassigned)
+
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Visible task"])
+        XCTAssertNil(store.activeTasks.first?.projectID)
+    }
+
+    func testTasksAndProjectsCanBeReordered() {
+        let store = makeStore()
+        store.addTask(title: "First")
+        store.addTask(title: "Second")
+        store.addTask(title: "Third")
+        store.moveTasks(IndexSet(integer: 0), to: 3, within: store.activeTasks)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Second", "Third", "First"])
+
+        store.addProject(name: "Alpha", color: .teal)
+        store.addProject(name: "Beta", color: .sky)
+        store.addProject(name: "Gamma", color: .amber)
+        store.moveProjects(IndexSet(integer: 2), to: 0)
+        XCTAssertEqual(store.orderedProjects.map(\.name), ["Gamma", "Alpha", "Beta"])
+    }
+
+    func testReminderImportUsesDestinationTerminologyDefaults() {
+        let store = makeStore()
+        let list = store.addProject(name: "Reading", color: .mint, kind: .list)!
+        let reminders = [ImportedReminder(
+            title: "A book",
+            notes: "From a friend",
+            dueDate: nil,
+            isImportant: true
+        )]
+
+        XCTAssertEqual(store.importReminders(reminders, into: list), 1)
+        let imported = store.filteredTasks(mode: .active, query: "", projectID: list.id).first
+        XCTAssertEqual(imported?.notes, "From a friend")
+        XCTAssertTrue(imported?.isImportant == true)
+        XCTAssertNil(imported?.expectedDurationMinutes)
+    }
+
+    func testLegacyProjectsRemainVisibleProjects() throws {
+        let id = UUID()
+        let data = Data("""
+        {"id":"\(id.uuidString)","name":"Legacy","color":"teal"}
+        """.utf8)
+        let project = try JSONDecoder().decode(ProjectItem.self, from: data)
+
+        XCTAssertEqual(project.kind, .project)
+        XCTAssertFalse(project.hidesFromAllTasks)
+    }
+
     func testScheduleConflictSuggestsTheNextFreeTime() async {
         let store = makeStore()
         let day = Date(timeIntervalSince1970: 1_800_000_000)
@@ -68,6 +149,50 @@ final class TaskStoreTests: XCTestCase {
 
         XCTAssertEqual(conflict?.conflictingTitle, "Existing")
         XCTAssertEqual(conflict?.suggestedStart, ten)
+    }
+
+    func testSuggestedScheduleStartsWhenMostRecentlyAddedTaskFinishes() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let nine = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow)!
+        let eleven = calendar.date(bySettingHour: 11, minute: 0, second: 0, of: tomorrow)!
+        await store.saveTask(TaskItem(
+            title: "Added first",
+            createdAt: Date(timeIntervalSince1970: 100),
+            scheduledAt: eleven,
+            expectedDurationMinutes: 30
+        ))
+        await store.saveTask(TaskItem(
+            title: "Added most recently",
+            createdAt: Date(timeIntervalSince1970: 200),
+            scheduledAt: nine,
+            expectedDurationMinutes: 45
+        ))
+
+        XCTAssertEqual(
+            store.suggestedScheduleTime(on: tomorrow),
+            calendar.date(byAdding: .minute, value: 45, to: nine)
+        )
+    }
+
+    func testBreaksPersistAndBlockScheduleTime() async {
+        var store: TaskStore? = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: tomorrow)!
+        let lunch = ScheduleBreakItem(title: "Lunch", startDate: noon, durationMinutes: 60)
+        store?.saveBreak(lunch)
+
+        let proposed = TaskItem(title: "Call", scheduledAt: noon, expectedDurationMinutes: 30)
+        let conflict = store?.scheduleConflict(for: proposed, calendarEntries: [])
+        XCTAssertEqual(conflict?.conflictingTitle, "Lunch")
+        XCTAssertEqual(
+            conflict?.suggestedStart,
+            calendar.date(byAdding: .hour, value: 1, to: noon)
+        )
+
+        store = nil
+        let restored = makeStore()
+        XCTAssertEqual(restored.breaks(on: tomorrow), [lunch])
     }
 
     func testArchiveAllRestoreAndDeleteAll() {
@@ -220,6 +345,7 @@ final class LocalizationTests: XCTestCase {
             )
             XCTAssertNotNil(info["CFBundleDisplayName"])
             XCTAssertNotNil(info["NSCalendarsFullAccessUsageDescription"])
+            XCTAssertNotNil(info["NSRemindersFullAccessUsageDescription"])
             XCTAssertNotNil(info["NSUserNotificationsUsageDescription"])
         }
     }
@@ -228,9 +354,10 @@ final class LocalizationTests: XCTestCase {
         let resources = repositoryRoot.appendingPathComponent("Listello/Resources", isDirectory: true)
         let english = try stringsDictionary(at: resources.appendingPathComponent("en.lproj/Localizable.strings"))
         let dynamicKeys = [
-            "add_to_project", "archived_on", "calendar_name", "delete_project_named",
-            "duration_minutes", "keep_time", "one_open_task_in_project",
-            "open_tasks_in_project", "remove_duration", "schedule_conflict_message",
+            "add_to_list", "add_to_project", "archived_on", "calendar_name", "delete_project_named",
+            "duration_minutes", "imported_reminders_summary", "items_in_list", "keep_time",
+            "one_item_in_list", "one_open_task_in_project", "open_tasks_in_project",
+            "remove_duration", "schedule_conflict_message",
             "to_time", "today_at_time", "tomorrow_at_time", "use_time"
         ]
 

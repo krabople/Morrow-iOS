@@ -5,12 +5,16 @@ Listello is a colourful, deliberately simple task and schedule app built nativel
 ## What it does
 
 - Capture an unscheduled task in one step
-- Organise optional projects from a slide-in sidebar
+- Organise optional projects and reference lists from a slide-in sidebar
+- Hide any project or list from All Tasks
+- Reorder tasks, items, projects and lists with visible drag handles
+- Import selected Apple Reminders lists as either Listello projects or lists
 - Add notes, importance and an expected duration
 - Choose the duration shortcuts that suit you, including custom values
 - View scheduled tasks as a timetable for any chosen day
 - Repeat tasks daily, on weekdays, weekly, fortnightly, monthly or yearly
-- Detect timetable clashes and suggest the next available time
+- Start new scheduled tasks when the most recently added scheduled task finishes
+- Detect timetable clashes and suggest the next available time; Calendar is included only while its overlay is enabled
 - Enable a notification for one scheduled task
 - Enable notifications for every scheduled task on a selected day
 - Show or hide clearly labelled Apple Calendar events

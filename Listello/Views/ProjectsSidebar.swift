@@ -18,7 +18,7 @@ struct ProjectsSidebar: View {
                     Text("Listello")
                         .font(.title2.bold())
                         .foregroundStyle(Color.listelloInk)
-                    Text("Projects")
+                    Text("Projects and lists")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -30,50 +30,60 @@ struct ProjectsSidebar: View {
                         .font(.title3)
                         .foregroundStyle(.secondary)
                 }
-                .accessibilityLabel("Close projects")
+                .accessibilityLabel("Close projects and lists")
             }
             .padding(20)
 
             Divider()
 
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    selectionRow(
-                        title: L10n.text("All Tasks"),
-                        systemImage: "tray.full.fill",
-                        color: .listelloTeal,
-                        count: store.activeTasks.count,
-                        isSelected: selectedProjectID == nil
-                    ) {
-                        select(nil)
-                    }
-
-                    ForEach(store.projects.sorted { $0.createdAt < $1.createdAt }) { project in
-                        projectRow(project)
-                    }
+            List {
+                selectionRow(
+                    title: L10n.text("All Tasks"),
+                    systemImage: "tray.full.fill",
+                    color: .listelloTeal,
+                    count: store.activeTasks.count,
+                    isSelected: selectedProjectID == nil
+                ) {
+                    select(nil)
                 }
-                .padding(14)
+                .listRowInsets(EdgeInsets(top: 4, leading: 14, bottom: 4, trailing: 14))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+
+                ForEach(store.orderedProjects) { project in
+                    projectRow(project)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 14, bottom: 4, trailing: 8))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
 
             Divider()
 
             Button {
                 newProject = ProjectItem(name: "", color: nextColor)
             } label: {
-                Label("New Project", systemImage: "plus.circle.fill")
+                Label("New project or list", systemImage: "plus.circle.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(18)
             }
             .foregroundStyle(Color.listelloTeal)
         }
-        .frame(width: min(330, UIScreen.main.bounds.width * 0.86))
+        .frame(width: min(350, UIScreen.main.bounds.width * 0.90))
         .background(.regularMaterial)
         .clipShape(UnevenRoundedRectangle(bottomTrailingRadius: 28, topTrailingRadius: 28))
         .shadow(color: .black.opacity(0.18), radius: 28, x: 8)
         .sheet(item: $newProject) { project in
             ProjectEditorView(project: project, isNew: true) { updated in
-                if let created = store.addProject(name: updated.name, color: updated.color) {
+                if let created = store.addProject(
+                    name: updated.name,
+                    color: updated.color,
+                    kind: updated.kind,
+                    hidesFromAllTasks: updated.hidesFromAllTasks
+                ) {
                     select(created.id)
                 }
             }
@@ -82,21 +92,32 @@ struct ProjectsSidebar: View {
             ProjectEditorView(project: project, isNew: false, onSave: store.saveProject)
         }
         .confirmationDialog(
-            L10n.format("delete_project_named", projectToDelete?.name ?? L10n.text("this project")),
+            L10n.format("delete_project_named", projectToDelete?.name ?? L10n.text("this project or list")),
             isPresented: Binding(
                 get: { projectToDelete != nil },
                 set: { if !$0 { projectToDelete = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete Project", role: .destructive) {
-                guard let project = projectToDelete else { return }
-                if selectedProjectID == project.id { selectedProjectID = nil }
-                store.deleteProject(project)
-                projectToDelete = nil
+            if let project = projectToDelete {
+                if project.hidesFromAllTasks {
+                    Button(archiveAndDeleteLabel(for: project), role: .destructive) {
+                        delete(project, disposition: .archiveContents)
+                    }
+                } else {
+                    Button(keepUnassignedLabel(for: project)) {
+                        delete(project, disposition: .keepUnassigned)
+                    }
+                    Button(archiveAndDeleteLabel(for: project), role: .destructive) {
+                        delete(project, disposition: .archiveContents)
+                    }
+                }
             }
+            Button("Cancel", role: .cancel) { projectToDelete = nil }
         } message: {
-            Text("Its tasks will remain in All Tasks and become unassigned.")
+            if let project = projectToDelete {
+                Text(deletionMessage(for: project))
+            }
         }
     }
 
@@ -105,21 +126,33 @@ struct ProjectsSidebar: View {
             Button {
                 select(project.id)
             } label: {
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(project.color.tint)
-                        .frame(width: 12, height: 12)
-                    Text(project.name)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.listelloInk)
-                        .lineLimit(1)
-                    Spacer()
-                    Text("\(store.activeTasks.filter { $0.projectID == project.id }.count)")
+                HStack(spacing: 11) {
+                    Image(systemName: project.kind.systemImage)
+                        .foregroundStyle(project.color.tint)
+                        .frame(width: 19)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(project.name)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Color.listelloInk)
+                            .lineLimit(1)
+                        HStack(spacing: 5) {
+                            Text(project.kind.title)
+                            if project.hidesFromAllTasks {
+                                Image(systemName: "eye.slash")
+                            }
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    Text("\(store.filteredTasks(mode: .active, query: "", projectID: project.id).count)")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
                 .padding(.leading, 14)
-                .padding(.vertical, 13)
+                .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
 
@@ -128,10 +161,23 @@ struct ProjectsSidebar: View {
                 Button("Delete", systemImage: "trash", role: .destructive) { projectToDelete = project }
             } label: {
                 Image(systemName: "ellipsis")
-                    .frame(width: 42, height: 42)
+                    .frame(width: 40, height: 44)
                     .foregroundStyle(.secondary)
             }
+
+            Image(systemName: "line.3.horizontal")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 32, height: 44)
+                .contentShape(Rectangle())
+                .draggable("project:\(project.id.uuidString)") {
+                    Label(project.name, systemImage: project.kind.systemImage)
+                        .padding(12)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+                .accessibilityLabel("Reorder")
         }
+        .contentShape(Rectangle())
         .background(
             project.color.tint.opacity(selectedProjectID == project.id ? 0.17 : 0.055),
             in: RoundedRectangle(cornerRadius: 15, style: .continuous)
@@ -141,6 +187,17 @@ struct ProjectsSidebar: View {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .stroke(project.color.tint.opacity(0.45), lineWidth: 1)
             }
+        }
+        .dropDestination(for: String.self) { identifiers, _ in
+            guard
+                let identifier = identifiers.first,
+                identifier.hasPrefix("project:"),
+                let draggedID = UUID(uuidString: String(identifier.dropFirst(8)))
+            else { return false }
+            withAnimation(.snappy) {
+                store.moveProject(draggedID, relativeTo: project.id)
+            }
+            return true
         }
     }
 
@@ -156,7 +213,7 @@ struct ProjectsSidebar: View {
             HStack(spacing: 12) {
                 Image(systemName: systemImage)
                     .foregroundStyle(color)
-                    .frame(width: 16)
+                    .frame(width: 19)
                 Text(title)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.listelloInk)
@@ -165,7 +222,9 @@ struct ProjectsSidebar: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity)
             .padding(14)
+            .contentShape(Rectangle())
             .background(color.opacity(isSelected ? 0.16 : 0.05), in: RoundedRectangle(cornerRadius: 15))
         }
         .buttonStyle(.plain)
@@ -174,6 +233,31 @@ struct ProjectsSidebar: View {
     private var nextColor: ProjectColor {
         let colors = ProjectColor.allCases
         return colors[store.projects.count % colors.count]
+    }
+
+    private func archiveAndDeleteLabel(for project: ProjectItem) -> String {
+        L10n.text(project.kind == .list ? "Archive Items and Delete List" : "Archive Tasks and Delete Project")
+    }
+
+    private func keepUnassignedLabel(for project: ProjectItem) -> String {
+        L10n.text(project.kind == .list ? "Keep Items in All Tasks" : "Keep Tasks in All Tasks")
+    }
+
+    private func deletionMessage(for project: ProjectItem) -> String {
+        if project.hidesFromAllTasks {
+            return L10n.text(project.kind == .list
+                ? "Because this list is hidden from All Tasks, all of its items will be archived."
+                : "Because this project is hidden from All Tasks, all of its tasks will be archived.")
+        }
+        return L10n.text(project.kind == .list
+            ? "Choose whether to archive this list’s items or keep them in All Tasks as unassigned."
+            : "Choose whether to archive this project’s tasks or keep them in All Tasks as unassigned.")
+    }
+
+    private func delete(_ project: ProjectItem, disposition: ProjectDeletionDisposition) {
+        if selectedProjectID == project.id { selectedProjectID = nil }
+        store.deleteProject(project, disposition: disposition)
+        projectToDelete = nil
     }
 
     private func select(_ projectID: UUID?) {
