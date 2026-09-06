@@ -97,7 +97,7 @@ final class TaskStore: ObservableObject {
     }
 
     func clearCompleted() {
-        tasks.removeAll(\.isCompleted)
+        tasks.removeAll { $0.isCompleted }
         persist()
     }
 
