@@ -139,6 +139,49 @@ jobs:
           IPA_PATH=$(find .build/Export -name '*.ipa' -print -quit)
           echo "ipa-path=$IPA_PATH" >> "$GITHUB_OUTPUT"
 
+      - name: Verify packaged app icons
+        run: |
+          set -euo pipefail
+
+          IPA_PATH="${{ steps.build.outputs.ipa-path }}"
+          AUDIT_DIR=$(mktemp -d "$RUNNER_TEMP/morrow-ipa-audit.XXXXXX")
+          unzip -q "$IPA_PATH" -d "$AUDIT_DIR"
+
+          APP_BUNDLE=$(find "$AUDIT_DIR/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)
+          INFO_PLIST="$APP_BUNDLE/Info.plist"
+
+          echo "Packaged icon metadata:"
+          plutil -p "$INFO_PLIST" | grep -E 'CFBundleIcon(Name|s|Files)|AppIcon'
+
+          ICON_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$INFO_PLIST")
+          if [ "$ICON_NAME" != "AppIcon" ]; then
+            echo "Packaged CFBundleIconName is '$ICON_NAME', expected 'AppIcon'." >&2
+            exit 1
+          fi
+
+          find_icon_with_size() {
+            expected="$1"
+            find "$APP_BUNDLE" -maxdepth 1 -type f -name '*.png' -print | while IFS= read -r icon; do
+              width=$(sips -g pixelWidth "$icon" 2>/dev/null | awk '/pixelWidth/ {print $2}')
+              height=$(sips -g pixelHeight "$icon" 2>/dev/null | awk '/pixelHeight/ {print $2}')
+              if [ "$width" = "$expected" ] && [ "$height" = "$expected" ]; then
+                echo "$icon"
+                break
+              fi
+            done
+          }
+
+          ICON_120=$(find_icon_with_size 120)
+          ICON_152=$(find_icon_with_size 152)
+          if [ -z "$ICON_120" ] || [ -z "$ICON_152" ]; then
+            echo "Required packaged icons are missing (120x120: ${ICON_120:-missing}; 152x152: ${ICON_152:-missing})." >&2
+            find "$APP_BUNDLE" -maxdepth 1 -type f -name '*.png' -print >&2
+            exit 1
+          fi
+
+          echo "Verified 120x120 icon: $ICON_120"
+          echo "Verified 152x152 icon: $ICON_152"
+
       - name: Keep signed IPA as a workflow artifact
         uses: actions/upload-artifact@v7
         with:
