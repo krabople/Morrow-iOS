@@ -70,6 +70,26 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         sortIndex = try values.decodeIfPresent(Int.self, forKey: .sortIndex)
         calendarEventIdentifier = try values.decodeIfPresent(String.self, forKey: .calendarEventIdentifier)
     }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(title, forKey: .title)
+        try values.encode(notes, forKey: .notes)
+        try values.encode(createdAt, forKey: .createdAt)
+        try values.encodeIfPresent(scheduledAt, forKey: .scheduledAt)
+        if let expectedDurationMinutes {
+            try values.encode(expectedDurationMinutes, forKey: .expectedDurationMinutes)
+        } else {
+            try values.encodeNil(forKey: .expectedDurationMinutes)
+        }
+        try values.encode(notifiesAtScheduledTime, forKey: .notifiesAtScheduledTime)
+        try values.encode(isImportant, forKey: .isImportant)
+        try values.encodeIfPresent(completedAt, forKey: .completedAt)
+        try values.encodeIfPresent(projectID, forKey: .projectID)
+        try values.encodeIfPresent(sortIndex, forKey: .sortIndex)
+        try values.encodeIfPresent(calendarEventIdentifier, forKey: .calendarEventIdentifier)
+    }
 }
 
 struct ProjectItem: Identifiable, Codable, Equatable, Hashable {
