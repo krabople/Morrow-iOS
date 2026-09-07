@@ -88,6 +88,7 @@ struct ScheduleView: View {
                         Image(systemName: "plus.circle.fill")
                     }
                     .accessibilityLabel("Add to schedule")
+                    .listelloTutorialTarget(.scheduleAdd)
                 }
             }
             .sheet(isPresented: $showsCalendar) {

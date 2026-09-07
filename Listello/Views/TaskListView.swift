@@ -63,6 +63,7 @@ struct TaskListView: View {
                         Image(systemName: "line.3.horizontal")
                     }
                     .accessibilityLabel("Open projects")
+                    .listelloTutorialTarget(.projectsAndLists)
                 }
 
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -91,6 +92,7 @@ struct TaskListView: View {
                         Image(systemName: "arrow.up.arrow.down.circle")
                     }
                     .accessibilityLabel("Sort")
+                    .listelloTutorialTarget(.sort)
 
                     if mode == .active, !visibleTasks.isEmpty {
                         Button {
@@ -255,6 +257,7 @@ struct TaskListView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
+        .listelloTutorialTarget(.quickAdd)
     }
 
     private var headerTitle: String {

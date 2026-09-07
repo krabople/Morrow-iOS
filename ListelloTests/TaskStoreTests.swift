@@ -546,7 +546,9 @@ final class LocalizationTests: XCTestCase {
     func testEverySupportedLanguageHasEveryAppString() throws {
         let resources = repositoryRoot.appendingPathComponent("Listello/Resources", isDirectory: true)
         let english = try stringsDictionary(at: resources.appendingPathComponent("en.lproj/Localizable.strings"))
+        let englishTutorial = try stringsDictionary(at: resources.appendingPathComponent("en.lproj/Tutorial.strings"))
         XCTAssertGreaterThan(english.count, 150)
+        XCTAssertEqual(englishTutorial.count, 11)
 
         for locale in completeLocalizations {
             let translations = try stringsDictionary(
@@ -556,6 +558,15 @@ final class LocalizationTests: XCTestCase {
                 Set(translations.keys),
                 Set(english.keys),
                 "\(locale) must contain the complete Listello string set"
+            )
+
+            let tutorial = try stringsDictionary(
+                at: resources.appendingPathComponent("\(locale).lproj/Tutorial.strings")
+            )
+            XCTAssertEqual(
+                Set(tutorial.keys),
+                Set(englishTutorial.keys),
+                "\(locale) must contain the complete tutorial string set"
             )
 
             let info = try stringsDictionary(

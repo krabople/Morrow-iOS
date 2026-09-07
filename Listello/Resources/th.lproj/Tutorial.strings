@@ -1,0 +1,11 @@
+"A simple, flexible home for tasks, lists and plans." = "พื้นที่เรียบง่ายและยืดหยุ่นสำหรับงาน รายการ และแผนของคุณ";
+"Type here to add a task or item without leaving your list." = "พิมพ์ที่นี่เพื่อเพิ่มงานหรือรายการโดยไม่ต้องออกจากลิสต์";
+"Open the sidebar to create, choose and reorder projects and lists." = "เปิดแถบด้านข้างเพื่อสร้าง เลือก และจัดลำดับโปรเจกต์กับลิสต์";
+"Choose how the list is sorted. Random Pick appears beside this when tasks are available." = "เลือกวิธีเรียงลิสต์ ปุ่มสุ่มเลือกจะปรากฏข้าง ๆ เมื่อมีงาน";
+"Add timed tasks or breaks. If something clashes, Listello can shift only the entries that need to move." = "เพิ่มงานแบบกำหนดเวลาหรือเวลาพัก หากเวลาชนกัน Listello จะเลื่อนเฉพาะรายการที่จำเป็น";
+"Change defaults, appearance and archiving here. You can replay this tutorial whenever you like." = "เปลี่ยนค่าเริ่มต้น รูปลักษณ์ และการเก็บถาวรได้ที่นี่ และดูบทแนะนำนี้ซ้ำได้ทุกเมื่อ";
+"Skip" = "ข้าม";
+"Back" = "ย้อนกลับ";
+"Next" = "ถัดไป";
+"Help" = "ช่วยเหลือ";
+"Replay tutorial" = "ดูบทแนะนำอีกครั้ง";

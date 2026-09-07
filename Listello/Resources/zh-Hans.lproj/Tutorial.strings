@@ -1,0 +1,11 @@
+"A simple, flexible home for tasks, lists and plans." = "一个简单灵活的空间，用于管理任务、列表和计划。";
+"Type here to add a task or item without leaving your list." = "在此输入即可添加任务或项目，无需离开当前列表。";
+"Open the sidebar to create, choose and reorder projects and lists." = "打开侧边栏以创建、选择项目和列表并调整其顺序。";
+"Choose how the list is sorted. Random Pick appears beside this when tasks are available." = "选择列表排序方式。有可用任务时，随机选择会显示在旁边。";
+"Add timed tasks or breaks. If something clashes, Listello can shift only the entries that need to move." = "添加定时任务或休息时间。如果发生冲突，Listello 只会顺延需要移动的条目。";
+"Change defaults, appearance and archiving here. You can replay this tutorial whenever you like." = "在此更改默认设置、外观和归档方式。你可以随时重新查看本教程。";
+"Skip" = "跳过";
+"Back" = "返回";
+"Next" = "下一步";
+"Help" = "帮助";
+"Replay tutorial" = "重新查看教程";

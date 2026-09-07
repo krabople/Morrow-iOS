@@ -1,0 +1,11 @@
+"A simple, flexible home for tasks, lists and plans." = "Görevler, listeler ve planlar için basit ve esnek bir alan.";
+"Type here to add a task or item without leaving your list." = "Listeden ayrılmadan görev veya öğe eklemek için buraya yazın.";
+"Open the sidebar to create, choose and reorder projects and lists." = "Proje ve listeler oluşturmak, seçmek ve yeniden sıralamak için kenar çubuğunu açın.";
+"Choose how the list is sorted. Random Pick appears beside this when tasks are available." = "Listenin nasıl sıralanacağını seçin. Görev olduğunda yanında Rastgele Seçim görünür.";
+"Add timed tasks or breaks. If something clashes, Listello can shift only the entries that need to move." = "Saatli görevler veya molalar ekleyin. Çakışma olursa Listello yalnızca taşınması gereken girişleri kaydırır.";
+"Change defaults, appearance and archiving here. You can replay this tutorial whenever you like." = "Varsayılanları, görünümü ve arşivlemeyi buradan değiştirin. Bu eğitimi istediğiniz zaman yeniden izleyebilirsiniz.";
+"Skip" = "Atla";
+"Back" = "Geri";
+"Next" = "İleri";
+"Help" = "Yardım";
+"Replay tutorial" = "Eğitimi yeniden göster";

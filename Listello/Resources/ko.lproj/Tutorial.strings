@@ -1,0 +1,11 @@
+"A simple, flexible home for tasks, lists and plans." = "할 일, 목록 및 계획을 위한 간단하고 유연한 공간입니다.";
+"Type here to add a task or item without leaving your list." = "목록을 벗어나지 않고 여기에 할 일이나 항목을 입력하여 추가하세요.";
+"Open the sidebar to create, choose and reorder projects and lists." = "사이드바를 열어 프로젝트와 목록을 만들고 선택하고 순서를 변경하세요.";
+"Choose how the list is sorted. Random Pick appears beside this when tasks are available." = "목록 정렬 방식을 선택하세요. 할 일이 있으면 이 옆에 무작위 선택이 표시됩니다.";
+"Add timed tasks or breaks. If something clashes, Listello can shift only the entries that need to move." = "시간이 지정된 할 일이나 휴식을 추가하세요. 겹치는 경우 Listello는 필요한 항목만 뒤로 옮길 수 있습니다.";
+"Change defaults, appearance and archiving here. You can replay this tutorial whenever you like." = "기본값, 화면 모양 및 보관 설정을 여기에서 변경하세요. 이 튜토리얼은 언제든 다시 볼 수 있습니다.";
+"Skip" = "건너뛰기";
+"Back" = "뒤로";
+"Next" = "다음";
+"Help" = "도움말";
+"Replay tutorial" = "튜토리얼 다시 보기";

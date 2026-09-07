@@ -1,0 +1,11 @@
+"A simple, flexible home for tasks, lists and plans." = "Un espace simple et flexible pour vos tâches, listes et projets.";
+"Type here to add a task or item without leaving your list." = "Saisissez ici une tâche ou un élément sans quitter votre liste.";
+"Open the sidebar to create, choose and reorder projects and lists." = "Ouvrez la barre latérale pour créer, choisir et réorganiser vos projets et listes.";
+"Choose how the list is sorted. Random Pick appears beside this when tasks are available." = "Choisissez le tri de la liste. Le choix aléatoire apparaît à côté lorsque des tâches sont disponibles.";
+"Add timed tasks or breaks. If something clashes, Listello can shift only the entries that need to move." = "Ajoutez des tâches planifiées ou des pauses. En cas de conflit, Listello ne décale que les éléments nécessaires.";
+"Change defaults, appearance and archiving here. You can replay this tutorial whenever you like." = "Modifiez ici les réglages par défaut, l’apparence et l’archivage. Vous pouvez revoir ce tutoriel à tout moment.";
+"Skip" = "Ignorer";
+"Back" = "Retour";
+"Next" = "Suivant";
+"Help" = "Aide";
+"Replay tutorial" = "Revoir le tutoriel";

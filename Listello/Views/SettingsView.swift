@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: TaskStore
+    @Environment(\.replayListelloTutorial) private var replayTutorial
     @State private var showsArchiveAllConfirmation = false
 
     var body: some View {
@@ -24,6 +25,13 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
+                        }
+
+                        Section(ListelloTutorialL10n.text("Help")) {
+                            Button(action: replayTutorial) {
+                                Label(ListelloTutorialL10n.text("Replay tutorial"), systemImage: "questionmark.circle")
+                            }
+                            .listelloTutorialTarget(.replay)
                         }
 
                         Section("Task Defaults") {
