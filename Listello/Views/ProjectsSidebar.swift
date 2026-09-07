@@ -9,7 +9,6 @@ struct ProjectsSidebar: View {
     @State private var editingProject: ProjectItem?
     @State private var newProject: ProjectItem?
     @State private var projectToDelete: ProjectItem?
-    @State private var isReordering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -24,21 +23,6 @@ struct ProjectsSidebar: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if store.projects.count > 1 {
-                    Button {
-                        withAnimation(.snappy) { isReordering.toggle() }
-                    } label: {
-                        if isReordering {
-                            Text("Done")
-                                .font(.subheadline.weight(.semibold))
-                        } else {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.body.weight(.semibold))
-                        }
-                    }
-                    .accessibilityLabel(L10n.text(isReordering ? "Done" : "Reorder"))
-                    .accessibilityIdentifier("reorder-projects-button")
-                }
                 Button {
                     withAnimation(.snappy) { isPresented = false }
                 } label: {
@@ -72,15 +56,12 @@ struct ProjectsSidebar: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
-                .onMove { source, destination in
-                    withAnimation(.snappy) {
-                        store.moveProjects(source, to: destination)
-                    }
+                .dropDestination(for: String.self) { identifiers, destination in
+                    reorderProjects(identifiers, to: destination)
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .environment(\.editMode, .constant(isReordering ? .active : .inactive))
 
             Divider()
 
@@ -187,7 +168,16 @@ struct ProjectsSidebar: View {
                     .foregroundStyle(.secondary)
             }
 
+            Image(systemName: "line.3.horizontal")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 36, height: 44)
+                .contentShape(Rectangle())
+                .accessibilityLabel("Reorder")
+                .accessibilityHint("Touch and hold, then drag up or down")
+                .accessibilityIdentifier("project-reorder-\(project.id.uuidString)")
         }
+        .listelloDraggable(project.id.uuidString)
         .contentShape(Rectangle())
         .background(
             project.color.tint.opacity(selectedProjectID == project.id ? 0.17 : 0.055),
@@ -265,5 +255,17 @@ struct ProjectsSidebar: View {
         withAnimation(.snappy) { isPresented = false }
     }
 
-}
+    private func reorderProjects(_ identifiers: [String], to destination: Int) {
+        guard
+            let value = identifiers.first,
+            let draggedID = UUID(uuidString: value)
+        else { return }
 
+        let currentProjects = store.orderedProjects
+        guard let source = currentProjects.firstIndex(where: { $0.id == draggedID }) else { return }
+        withAnimation(.snappy) {
+            store.moveProjects(IndexSet(integer: source), to: destination)
+        }
+    }
+
+}

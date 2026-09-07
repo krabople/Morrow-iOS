@@ -5,6 +5,7 @@ struct TaskRow: View {
     let project: ProjectItem?
     var showsScheduleLabel = true
     var showsNotes = true
+    var showsReorderHandle = false
     let onToggle: () -> Void
 
     private var accent: Color {
@@ -76,6 +77,16 @@ struct TaskRow: View {
 
             Spacer(minLength: 0)
 
+            if showsReorderHandle {
+                Image(systemName: "line.3.horizontal")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 44)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Reorder")
+                    .accessibilityHint("Touch and hold, then drag up or down")
+                    .accessibilityIdentifier("task-reorder-\(task.id.uuidString)")
+            }
         }
         .padding(13)
         .background(accent.opacity(0.095), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -106,4 +117,3 @@ struct TaskRow: View {
         date < Date()
     }
 }
-

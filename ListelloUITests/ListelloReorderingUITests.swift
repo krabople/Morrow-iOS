@@ -17,8 +17,10 @@ final class ListelloReorderingUITests: XCTestCase {
         XCTAssertTrue(firstTitle.waitForExistence(timeout: 5))
         XCTAssertTrue(thirdTitle.exists)
 
-        app.buttons["reorder-tasks-button"].tap()
-        dragRow(from: firstTitle, to: thirdTitle, trailingX: app.frame.maxX - 24)
+        drag(
+            "task-reorder-11111111-1111-1111-1111-111111111111",
+            to: "task-reorder-33333333-3333-3333-3333-333333333333"
+        )
         XCTAssertGreaterThan(firstTitle.frame.minY, thirdTitle.frame.minY)
 
         relaunchWithoutSeeding()
@@ -35,8 +37,10 @@ final class ListelloReorderingUITests: XCTestCase {
         XCTAssertTrue(alphaTitle.waitForExistence(timeout: 5))
         XCTAssertTrue(gammaTitle.exists)
 
-        app.buttons["reorder-projects-button"].tap()
-        dragRow(from: alphaTitle, to: gammaTitle, trailingX: min(332, app.frame.maxX - 24))
+        drag(
+            "project-reorder-AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA",
+            to: "project-reorder-CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"
+        )
         XCTAssertGreaterThan(alphaTitle.frame.minY, gammaTitle.frame.minY)
 
         relaunchWithoutSeeding()
@@ -47,11 +51,14 @@ final class ListelloReorderingUITests: XCTestCase {
         )
     }
 
-    private func dragRow(from source: XCUIElement, to destination: XCUIElement, trailingX: CGFloat) {
-        let origin = app.coordinate(withNormalizedOffset: .zero)
-        let start = origin.withOffset(CGVector(dx: trailingX, dy: source.frame.midY))
-        let end = origin.withOffset(CGVector(dx: trailingX, dy: destination.frame.midY))
-        start.press(forDuration: 0.15, thenDragTo: end)
+    private func drag(_ sourceIdentifier: String, to destinationIdentifier: String) {
+        let source = app.descendants(matching: .any)[sourceIdentifier]
+        let destination = app.descendants(matching: .any)[destinationIdentifier]
+        XCTAssertTrue(source.waitForExistence(timeout: 5))
+        XCTAssertTrue(destination.waitForExistence(timeout: 5))
+        let start = source.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = destination.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        start.press(forDuration: 0.7, thenDragTo: end)
     }
 
     private func openProjects() {
@@ -67,4 +74,3 @@ final class ListelloReorderingUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["First task"].waitForExistence(timeout: 5))
     }
 }
-

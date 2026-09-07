@@ -12,7 +12,6 @@ struct TaskListView: View {
     @State private var editingTask: TaskItem?
     @State private var suggestion: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
-    @State private var isReordering = false
 
     private var selectedProject: ProjectItem? {
         store.project(withID: selectedProjectID)
@@ -66,22 +65,8 @@ struct TaskListView: View {
                     .accessibilityLabel("Open projects")
                 }
 
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if mode == .active, visibleTasks.count > 1 {
-                        Button {
-                            withAnimation(.snappy) { isReordering.toggle() }
-                        } label: {
-                            if isReordering {
-                                Text("Done")
-                            } else {
-                                Image(systemName: "arrow.up.arrow.down")
-                            }
-                        }
-                        .accessibilityLabel(L10n.text(isReordering ? "Done" : "Reorder"))
-                        .accessibilityIdentifier("reorder-tasks-button")
-                    }
-
-                    if mode == .active, !visibleTasks.isEmpty, !isReordering {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if mode == .active, !visibleTasks.isEmpty {
                         Button {
                             suggestion = store.suggestedTask(from: visibleTasks)
                         } label: {
@@ -95,7 +80,6 @@ struct TaskListView: View {
                 text: $query,
                 prompt: L10n.text(selectedProject?.kind == .list ? "Search items" : "Search tasks")
             )
-            .onChange(of: mode) { _, _ in isReordering = false }
             .safeAreaInset(edge: .bottom) {
                 if mode == .active {
                     quickAddBar
@@ -145,10 +129,12 @@ struct TaskListView: View {
                 TaskRow(
                     task: task,
                     project: store.project(withID: task.projectID),
-                    showsNotes: store.preferences.showNotesInList
+                    showsNotes: store.preferences.showNotesInList,
+                    showsReorderHandle: mode == .active
                 ) {
                     completeTask(task)
                 }
+                .listelloDraggable(task.id.uuidString, isEnabled: mode == .active)
                 .onTapGesture {
                     editingTask = task
                 }
@@ -182,16 +168,12 @@ struct TaskListView: View {
                     }
                 }
             }
-            .onMove { source, destination in
-                guard mode == .active else { return }
-                withAnimation(.snappy) {
-                    store.moveTasks(source, to: destination, within: visibleTasks)
-                }
+            .dropDestination(for: String.self) { identifiers, destination in
+                reorderTasks(identifiers, to: destination)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .environment(\.editMode, .constant(isReordering ? .active : .inactive))
         .overlay {
             if visibleTasks.isEmpty {
                 ContentUnavailableView(
@@ -313,5 +295,18 @@ struct TaskListView: View {
         }
     }
 
-}
+    private func reorderTasks(_ identifiers: [String], to destination: Int) {
+        guard
+            mode == .active,
+            let value = identifiers.first,
+            let draggedID = UUID(uuidString: value)
+        else { return }
 
+        let currentTasks = visibleTasks
+        guard let source = currentTasks.firstIndex(where: { $0.id == draggedID }) else { return }
+        withAnimation(.snappy) {
+            store.moveTasks(IndexSet(integer: source), to: destination, within: currentTasks)
+        }
+    }
+
+}
