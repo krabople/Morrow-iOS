@@ -232,6 +232,14 @@
 "Delete Break" = "휴식 삭제";
 "Delete this break?" = "이 휴식을 삭제할까요?";
 "Duration" = "시간";
+"Sort" = "정렬";
+"Sort by" = "정렬 기준";
+"Manual" = "수동";
+"Date added" = "추가한 날짜";
+"Name" = "이름";
+"Scheduled date" = "예정 날짜";
+"Ascending" = "오름차순";
+"Descending" = "내림차순";
 "Edit Break" = "휴식 편집";
 "List view" = "목록 보기";
 "New Break" = "새 휴식";

@@ -232,6 +232,14 @@
 "Delete Break" = "حذف الاستراحة";
 "Delete this break?" = "حذف هذه الاستراحة؟";
 "Duration" = "المدة";
+"Sort" = "فرز";
+"Sort by" = "الفرز حسب";
+"Manual" = "يدوي";
+"Date added" = "تاريخ الإضافة";
+"Name" = "الاسم";
+"Scheduled date" = "التاريخ المجدول";
+"Ascending" = "تصاعدي";
+"Descending" = "تنازلي";
 "Edit Break" = "تعديل الاستراحة";
 "List view" = "عرض القائمة";
 "New Break" = "استراحة جديدة";

@@ -232,6 +232,14 @@
 "Delete Break" = "Видалити перерву";
 "Delete this break?" = "Видалити цю перерву?";
 "Duration" = "Тривалість";
+"Sort" = "Сортування";
+"Sort by" = "Сортувати за";
+"Manual" = "Вручну";
+"Date added" = "Дата додавання";
+"Name" = "Назва";
+"Scheduled date" = "Запланована дата";
+"Ascending" = "За зростанням";
+"Descending" = "За спаданням";
 "Edit Break" = "Редагувати перерву";
 "List view" = "Список";
 "New Break" = "Нова перерва";

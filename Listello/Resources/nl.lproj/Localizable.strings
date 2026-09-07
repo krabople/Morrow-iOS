@@ -232,6 +232,14 @@
 "Delete Break" = "Pauze verwijderen";
 "Delete this break?" = "Deze pauze verwijderen?";
 "Duration" = "Duur";
+"Sort" = "Sorteren";
+"Sort by" = "Sorteren op";
+"Manual" = "Handmatig";
+"Date added" = "Datum toegevoegd";
+"Name" = "Naam";
+"Scheduled date" = "Geplande datum";
+"Ascending" = "Oplopend";
+"Descending" = "Aflopend";
 "Edit Break" = "Pauze bewerken";
 "List view" = "Lijstweergave";
 "New Break" = "Nieuwe pauze";

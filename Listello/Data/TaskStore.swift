@@ -60,14 +60,16 @@ final class TaskStore: ObservableObject {
     }
 
     var activeTasks: [TaskItem] {
-        tasks
-            .filter { task in
+        sortedTasks(
+            tasks.filter { task in
                 !task.isCompleted
                     && !task.isArchived
                     && (task.hiddenUntil ?? .distantPast) <= Date()
                     && !isHiddenFromAllTasks(task)
-            }
-            .sorted(by: listOrder)
+            },
+            by: preferences.taskSortOption,
+            direction: preferences.taskSortDirection
+        )
     }
 
     var completedTasks: [TaskItem] {
@@ -253,8 +255,11 @@ final class TaskStore: ObservableObject {
                 || task.notes.localizedCaseInsensitiveContains(cleanQuery)
             return matchesProject && matchesQuery
         }
-        if mode == .active { return filtered.sorted(by: listOrder) }
-        return filtered.sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+        return sortedTasks(
+            filtered,
+            by: preferences.taskSortOption,
+            direction: preferences.taskSortDirection
+        )
     }
 
     func tasks(on day: Date) -> [TaskItem] {
@@ -399,8 +404,14 @@ final class TaskStore: ObservableObject {
         return importedCount
     }
 
-    func moveTasks(_ source: IndexSet, to destination: Int, within visibleTasks: [TaskItem]) {
-        let reordered = moved(visibleTasks, from: source, to: destination)
+    func moveTasks(
+        _ source: IndexSet,
+        to destination: Int,
+        within visibleTasks: [TaskItem],
+        direction: TaskSortDirection = .ascending
+    ) {
+        let displayedOrder = moved(visibleTasks, from: source, to: destination)
+        let reordered = direction == .ascending ? displayedOrder : Array(displayedOrder.reversed())
         let visibleIDs = Set(visibleTasks.map(\.id))
         var replacements = reordered.makeIterator()
         var allOrdered = tasks.sorted(by: listOrder)
@@ -611,6 +622,16 @@ final class TaskStore: ObservableObject {
         persist()
     }
 
+    func setTaskSortOption(_ option: TaskSortOption) {
+        preferences.taskSortOption = option
+        persist()
+    }
+
+    func setTaskSortDirection(_ direction: TaskSortDirection) {
+        preferences.taskSortDirection = direction
+        persist()
+    }
+
     @discardableResult
     func applyAutomaticArchiving(now: Date = Date()) -> Int {
         guard let delayDays = preferences.completedArchiveDelayDays else { return 0 }
@@ -651,6 +672,115 @@ final class TaskStore: ObservableObject {
         let rightIndex = rhs.sortIndex ?? Int.max
         if leftIndex != rightIndex { return leftIndex < rightIndex }
         return lhs.createdAt < rhs.createdAt
+    }
+
+    func sortedTasks(
+        _ candidates: [TaskItem],
+        by option: TaskSortOption,
+        direction: TaskSortDirection
+    ) -> [TaskItem] {
+        candidates.sorted { lhs, rhs in
+            if preferences.importantTasksFirst,
+               option != .importance,
+               lhs.isImportant != rhs.isImportant {
+                return lhs.isImportant && !rhs.isImportant
+            }
+
+            if let missingValueOrder = missingValueOrder(lhs, rhs, by: option) {
+                return missingValueOrder
+            }
+
+            let comparison = taskComparison(lhs, rhs, by: option)
+            if comparison != .orderedSame {
+                return direction == .ascending
+                    ? comparison == .orderedAscending
+                    : comparison == .orderedDescending
+            }
+
+            let leftIndex = lhs.sortIndex ?? Int.max
+            let rightIndex = rhs.sortIndex ?? Int.max
+            if leftIndex != rightIndex { return leftIndex < rightIndex }
+            if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    private func missingValueOrder(
+        _ lhs: TaskItem,
+        _ rhs: TaskItem,
+        by option: TaskSortOption
+    ) -> Bool? {
+        switch option {
+        case .projectOrList:
+            return presentValuesFirst(
+                project(withID: lhs.projectID)?.name,
+                project(withID: rhs.projectID)?.name
+            )
+        case .scheduledDate:
+            return presentValuesFirst(lhs.scheduledAt, rhs.scheduledAt)
+        case .duration:
+            return presentValuesFirst(lhs.expectedDurationMinutes, rhs.expectedDurationMinutes)
+        default:
+            return nil
+        }
+    }
+
+    private func presentValuesFirst<T>(_ lhs: T?, _ rhs: T?) -> Bool? {
+        switch (lhs, rhs) {
+        case (_?, nil): return true
+        case (nil, _?): return false
+        default: return nil
+        }
+    }
+
+    private func taskComparison(
+        _ lhs: TaskItem,
+        _ rhs: TaskItem,
+        by option: TaskSortOption
+    ) -> ComparisonResult {
+        switch option {
+        case .manual:
+            return compare(lhs.sortIndex ?? Int.max, rhs.sortIndex ?? Int.max)
+        case .dateAdded:
+            return compare(lhs.createdAt, rhs.createdAt)
+        case .name:
+            return lhs.title.localizedStandardCompare(rhs.title)
+        case .projectOrList:
+            return compareOptionalText(
+                project(withID: lhs.projectID)?.name,
+                project(withID: rhs.projectID)?.name
+            )
+        case .scheduledDate:
+            return compareOptional(lhs.scheduledAt, rhs.scheduledAt)
+        case .duration:
+            return compareOptional(lhs.expectedDurationMinutes, rhs.expectedDurationMinutes)
+        case .importance:
+            return compare(lhs.isImportant ? 1 : 0, rhs.isImportant ? 1 : 0)
+        }
+    }
+
+    private func compare<T: Comparable>(_ lhs: T, _ rhs: T) -> ComparisonResult {
+        if lhs < rhs { return .orderedAscending }
+        if lhs > rhs { return .orderedDescending }
+        return .orderedSame
+    }
+
+    private func compareOptional<T: Comparable>(_ lhs: T?, _ rhs: T?) -> ComparisonResult {
+        switch (lhs, rhs) {
+        case let (left?, right?): return compare(left, right)
+        case (nil, nil): return .orderedSame
+        case (nil, _): return .orderedDescending
+        case (_, nil): return .orderedAscending
+        }
+    }
+
+    private func compareOptionalText(_ lhs: String?, _ rhs: String?) -> ComparisonResult {
+        switch (lhs, rhs) {
+        case let (left?, right?): return left.localizedStandardCompare(right)
+        case (nil, nil): return .orderedSame
+        case (nil, _): return .orderedDescending
+        case (_, nil): return .orderedAscending
+        }
     }
 
     private func validProjectID(_ id: UUID?) -> UUID? {

@@ -232,6 +232,14 @@
 "Delete Break" = "Molayı Sil";
 "Delete this break?" = "Bu mola silinsin mi?";
 "Duration" = "Süre";
+"Sort" = "Sırala";
+"Sort by" = "Şuna göre sırala";
+"Manual" = "Elle";
+"Date added" = "Eklenme tarihi";
+"Name" = "Ad";
+"Scheduled date" = "Planlanan tarih";
+"Ascending" = "Artan";
+"Descending" = "Azalan";
 "Edit Break" = "Molayı Düzenle";
 "List view" = "Liste görünümü";
 "New Break" = "Yeni Mola";

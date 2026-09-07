@@ -272,6 +272,39 @@ enum AppearancePreference: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+enum TaskSortOption: String, CaseIterable, Codable, Identifiable {
+    case manual
+    case dateAdded
+    case name
+    case projectOrList
+    case scheduledDate
+    case duration
+    case importance
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .manual: L10n.text("Manual")
+        case .dateAdded: L10n.text("Date added")
+        case .name: L10n.text("Name")
+        case .projectOrList: L10n.text("Project or list")
+        case .scheduledDate: L10n.text("Scheduled date")
+        case .duration: L10n.text("Duration")
+        case .importance: L10n.text("Important")
+        }
+    }
+}
+
+enum TaskSortDirection: String, CaseIterable, Codable, Identifiable {
+    case ascending
+    case descending
+
+    var id: Self { self }
+    var title: String { L10n.text(self == .ascending ? "Ascending" : "Descending") }
+    var systemImage: String { self == .ascending ? "arrow.up" : "arrow.down" }
+}
+
 struct ListelloPreferences: Codable, Equatable {
     var durationOptions: [Int]
     var defaultDurationMinutes: Int
@@ -280,6 +313,8 @@ struct ListelloPreferences: Codable, Equatable {
     var notifyNewScheduledTasks: Bool
     var importantTasksFirst: Bool
     var showNotesInList: Bool
+    var taskSortOption: TaskSortOption
+    var taskSortDirection: TaskSortDirection
 
     init(
         durationOptions: [Int] = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240],
@@ -288,7 +323,9 @@ struct ListelloPreferences: Codable, Equatable {
         appearance: AppearancePreference = .system,
         notifyNewScheduledTasks: Bool = false,
         importantTasksFirst: Bool = false,
-        showNotesInList: Bool = true
+        showNotesInList: Bool = true,
+        taskSortOption: TaskSortOption = .manual,
+        taskSortDirection: TaskSortDirection = .ascending
     ) {
         self.durationOptions = durationOptions
         self.defaultDurationMinutes = defaultDurationMinutes
@@ -297,11 +334,14 @@ struct ListelloPreferences: Codable, Equatable {
         self.notifyNewScheduledTasks = notifyNewScheduledTasks
         self.importantTasksFirst = importantTasksFirst
         self.showNotesInList = showNotesInList
+        self.taskSortOption = taskSortOption
+        self.taskSortDirection = taskSortDirection
     }
 
     private enum CodingKeys: String, CodingKey {
         case durationOptions, defaultDurationMinutes, completedArchiveDelayDays
         case appearance, notifyNewScheduledTasks, importantTasksFirst, showNotesInList
+        case taskSortOption, taskSortDirection
     }
 
     init(from decoder: Decoder) throws {
@@ -314,6 +354,8 @@ struct ListelloPreferences: Codable, Equatable {
         notifyNewScheduledTasks = try values.decodeIfPresent(Bool.self, forKey: .notifyNewScheduledTasks) ?? false
         importantTasksFirst = try values.decodeIfPresent(Bool.self, forKey: .importantTasksFirst) ?? false
         showNotesInList = try values.decodeIfPresent(Bool.self, forKey: .showNotesInList) ?? true
+        taskSortOption = try values.decodeIfPresent(TaskSortOption.self, forKey: .taskSortOption) ?? .manual
+        taskSortDirection = try values.decodeIfPresent(TaskSortDirection.self, forKey: .taskSortDirection) ?? .ascending
     }
 }
 

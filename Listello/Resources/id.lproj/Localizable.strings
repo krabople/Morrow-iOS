@@ -232,6 +232,14 @@
 "Delete Break" = "Hapus Istirahat";
 "Delete this break?" = "Hapus istirahat ini?";
 "Duration" = "Durasi";
+"Sort" = "Urutkan";
+"Sort by" = "Urutkan berdasarkan";
+"Manual" = "Manual";
+"Date added" = "Tanggal ditambahkan";
+"Name" = "Nama";
+"Scheduled date" = "Tanggal terjadwal";
+"Ascending" = "Menaik";
+"Descending" = "Menurun";
 "Edit Break" = "Edit Istirahat";
 "List view" = "Tampilan daftar";
 "New Break" = "Istirahat Baru";

@@ -232,6 +232,14 @@
 "Delete Break" = "ब्रेक मिटाएँ";
 "Delete this break?" = "यह ब्रेक मिटाएँ?";
 "Duration" = "अवधि";
+"Sort" = "क्रमबद्ध करें";
+"Sort by" = "इसके अनुसार क्रमबद्ध करें";
+"Manual" = "मैन्युअल";
+"Date added" = "जोड़े जाने की तारीख";
+"Name" = "नाम";
+"Scheduled date" = "निर्धारित तारीख";
+"Ascending" = "आरोही";
+"Descending" = "अवरोही";
 "Edit Break" = "ब्रेक संपादित करें";
 "List view" = "सूची दृश्य";
 "New Break" = "नया ब्रेक";

@@ -232,6 +232,14 @@
 "Delete Break" = "Xóa giờ nghỉ";
 "Delete this break?" = "Xóa giờ nghỉ này?";
 "Duration" = "Thời lượng";
+"Sort" = "Sắp xếp";
+"Sort by" = "Sắp xếp theo";
+"Manual" = "Thủ công";
+"Date added" = "Ngày thêm";
+"Name" = "Tên";
+"Scheduled date" = "Ngày đã lên lịch";
+"Ascending" = "Tăng dần";
+"Descending" = "Giảm dần";
 "Edit Break" = "Sửa giờ nghỉ";
 "List view" = "Dạng danh sách";
 "New Break" = "Giờ nghỉ mới";

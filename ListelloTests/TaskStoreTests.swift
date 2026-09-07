@@ -126,6 +126,82 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(restored.orderedProjects.map(\.name), ["Beta", "Alpha"])
     }
 
+    func testTasksCanBeSortedByUsefulFieldsInEitherDirection() async {
+        let store = makeStore()
+        let alphaProject = store.addProject(name: "Alpha project", color: .sky)!
+        let zuluProject = store.addProject(name: "Zulu project", color: .teal)!
+
+        await store.saveTask(TaskItem(
+            title: "Zulu task",
+            createdAt: Date(timeIntervalSince1970: 100),
+            scheduledAt: Date(timeIntervalSince1970: 300),
+            expectedDurationMinutes: 60,
+            isImportant: true,
+            projectID: zuluProject.id
+        ))
+        await store.saveTask(TaskItem(
+            title: "Alpha task",
+            createdAt: Date(timeIntervalSince1970: 200),
+            scheduledAt: Date(timeIntervalSince1970: 100),
+            expectedDurationMinutes: 15,
+            projectID: alphaProject.id
+        ))
+        await store.saveTask(TaskItem(
+            title: "Unassigned task",
+            createdAt: Date(timeIntervalSince1970: 300),
+            expectedDurationMinutes: nil
+        ))
+
+        store.setTaskSortOption(.name)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Alpha task", "Unassigned task", "Zulu task"])
+
+        store.setTaskSortOption(.dateAdded)
+        store.setTaskSortDirection(.descending)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Unassigned task", "Alpha task", "Zulu task"])
+
+        store.setTaskSortOption(.projectOrList)
+        store.setTaskSortDirection(.ascending)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Alpha task", "Zulu task", "Unassigned task"])
+
+        store.setTaskSortOption(.scheduledDate)
+        store.setTaskSortDirection(.descending)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Zulu task", "Alpha task", "Unassigned task"])
+
+        store.setTaskSortOption(.duration)
+        store.setTaskSortDirection(.ascending)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["Alpha task", "Zulu task", "Unassigned task"])
+
+        store.setTaskSortOption(.importance)
+        store.setTaskSortDirection(.descending)
+        XCTAssertEqual(store.activeTasks.first?.title, "Zulu task")
+    }
+
+    func testSortChoicePersistsAndManualDescendingCanBeReordered() {
+        var store: TaskStore? = makeStore()
+        store?.addTask(title: "First")
+        store?.addTask(title: "Second")
+        store?.addTask(title: "Third")
+        store?.setTaskSortOption(.manual)
+        store?.setTaskSortDirection(.descending)
+
+        XCTAssertEqual(store?.activeTasks.map(\.title), ["Third", "Second", "First"])
+        if let visibleTasks = store?.activeTasks {
+            store?.moveTasks(
+                IndexSet(integer: 0),
+                to: 3,
+                within: visibleTasks,
+                direction: .descending
+            )
+        }
+        XCTAssertEqual(store?.activeTasks.map(\.title), ["Second", "First", "Third"])
+        store = nil
+
+        let restored = makeStore()
+        XCTAssertEqual(restored.preferences.taskSortOption, .manual)
+        XCTAssertEqual(restored.preferences.taskSortDirection, .descending)
+        XCTAssertEqual(restored.activeTasks.map(\.title), ["Second", "First", "Third"])
+    }
+
     func testReminderImportUsesDestinationTerminologyDefaults() {
         let store = makeStore()
         let list = store.addProject(name: "Reading", color: .mint, kind: .list)!

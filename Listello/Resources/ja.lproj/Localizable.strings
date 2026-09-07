@@ -232,6 +232,14 @@
 "Delete Break" = "休憩を削除";
 "Delete this break?" = "この休憩を削除しますか？";
 "Duration" = "時間";
+"Sort" = "並べ替え";
+"Sort by" = "並べ替え基準";
+"Manual" = "手動";
+"Date added" = "追加日";
+"Name" = "名前";
+"Scheduled date" = "予定日";
+"Ascending" = "昇順";
+"Descending" = "降順";
 "Edit Break" = "休憩を編集";
 "List view" = "リスト表示";
 "New Break" = "新規休憩";

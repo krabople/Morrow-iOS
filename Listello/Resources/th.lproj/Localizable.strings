@@ -232,6 +232,14 @@
 "Delete Break" = "ลบช่วงพัก";
 "Delete this break?" = "ลบช่วงพักนี้หรือไม่";
 "Duration" = "ระยะเวลา";
+"Sort" = "เรียงลำดับ";
+"Sort by" = "เรียงตาม";
+"Manual" = "ด้วยตนเอง";
+"Date added" = "วันที่เพิ่ม";
+"Name" = "ชื่อ";
+"Scheduled date" = "วันที่กำหนดไว้";
+"Ascending" = "จากน้อยไปมาก";
+"Descending" = "จากมากไปน้อย";
 "Edit Break" = "แก้ไขช่วงพัก";
 "List view" = "มุมมองลิสต์";
 "New Break" = "ช่วงพักใหม่";

@@ -70,6 +70,14 @@
 "Done" = "Done";
 "Duration choices" = "Duration choices";
 "Duration" = "Duration";
+"Sort" = "Sort";
+"Sort by" = "Sort by";
+"Manual" = "Manual";
+"Date added" = "Date added";
+"Name" = "Name";
+"Scheduled date" = "Scheduled date";
+"Ascending" = "Ascending";
+"Descending" = "Descending";
 "Duration Choices" = "Duration Choices";
 "Edit" = "Edit";
 "Edit Break" = "Edit Break";

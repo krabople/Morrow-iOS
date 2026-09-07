@@ -65,7 +65,33 @@ struct TaskListView: View {
                     .accessibilityLabel("Open projects")
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("Sort by", selection: taskSortOptionBinding) {
+                            ForEach(TaskSortOption.allCases) { option in
+                                Text(option.title).tag(option)
+                            }
+                        }
+
+                        Divider()
+
+                        ForEach(TaskSortDirection.allCases) { direction in
+                            Button {
+                                store.setTaskSortDirection(direction)
+                            } label: {
+                                Label(
+                                    direction.title,
+                                    systemImage: store.preferences.taskSortDirection == direction
+                                        ? "checkmark"
+                                        : direction.systemImage
+                                )
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down.circle")
+                    }
+                    .accessibilityLabel("Sort")
+
                     if mode == .active, !visibleTasks.isEmpty {
                         Button {
                             suggestion = store.suggestedTask(from: visibleTasks)
@@ -130,14 +156,14 @@ struct TaskListView: View {
                     task: task,
                     project: store.project(withID: task.projectID),
                     showsNotes: store.preferences.showNotesInList,
-                    showsReorderHandle: mode == .active
+                    showsReorderHandle: canManuallyReorder
                 ) {
                     completeTask(task)
                 }
                 .onTapGesture {
                     editingTask = task
                 }
-                .moveDisabled(mode != .active)
+                .moveDisabled(!canManuallyReorder)
                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -169,9 +195,14 @@ struct TaskListView: View {
                 }
             }
             .onMove { source, destination in
-                guard mode == .active else { return }
+                guard canManuallyReorder else { return }
                 withAnimation(.snappy) {
-                    store.moveTasks(source, to: destination, within: visibleTasks)
+                    store.moveTasks(
+                        source,
+                        to: destination,
+                        within: visibleTasks,
+                        direction: store.preferences.taskSortDirection
+                    )
                 }
             }
         }
@@ -186,6 +217,18 @@ struct TaskListView: View {
                 )
             }
         }
+    }
+
+    private var canManuallyReorder: Bool {
+        mode == .active
+            && store.preferences.taskSortOption == .manual
+    }
+
+    private var taskSortOptionBinding: Binding<TaskSortOption> {
+        Binding(
+            get: { store.preferences.taskSortOption },
+            set: store.setTaskSortOption
+        )
     }
 
     private var quickAddBar: some View {

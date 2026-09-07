@@ -232,6 +232,14 @@
 "Delete Break" = "刪除休息";
 "Delete this break?" = "刪除此休息？";
 "Duration" = "持續時間";
+"Sort" = "排序";
+"Sort by" = "排序方式";
+"Manual" = "手動";
+"Date added" = "加入日期";
+"Name" = "名稱";
+"Scheduled date" = "排定日期";
+"Ascending" = "升序";
+"Descending" = "降序";
 "Edit Break" = "編輯休息";
 "List view" = "列表顯示方式";
 "New Break" = "新增休息";
