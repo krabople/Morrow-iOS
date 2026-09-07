@@ -56,6 +56,11 @@ struct ProjectsSidebar: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
+                .onMove { source, destination in
+                    withAnimation(.snappy) {
+                        store.moveProjects(source, to: destination)
+                    }
+                }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -174,7 +179,6 @@ struct ProjectsSidebar: View {
                 .accessibilityHint("Touch and hold, then drag up or down")
                 .accessibilityIdentifier("project-reorder-\(project.id.uuidString)")
         }
-        .listelloDraggable(project.id.uuidString)
         .contentShape(Rectangle())
         .background(
             project.color.tint.opacity(selectedProjectID == project.id ? 0.17 : 0.055),
@@ -185,9 +189,6 @@ struct ProjectsSidebar: View {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .stroke(project.color.tint.opacity(0.45), lineWidth: 1)
                 }
-        }
-        .dropDestination(for: String.self) { identifiers, _ in
-            reorderProjects(identifiers, relativeTo: project.id)
         }
     }
 
@@ -253,20 +254,6 @@ struct ProjectsSidebar: View {
     private func select(_ projectID: UUID?) {
         selectedProjectID = projectID
         withAnimation(.snappy) { isPresented = false }
-    }
-
-    private func reorderProjects(_ identifiers: [String], relativeTo targetID: UUID) -> Bool {
-        guard
-            let value = identifiers.first,
-            let draggedID = UUID(uuidString: value),
-            draggedID != targetID,
-            store.orderedProjects.contains(where: { $0.id == draggedID })
-        else { return false }
-
-        withAnimation(.snappy) {
-            store.moveProject(draggedID, relativeTo: targetID)
-        }
-        return true
     }
 
 }

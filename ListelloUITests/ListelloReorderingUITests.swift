@@ -58,7 +58,12 @@ final class ListelloReorderingUITests: XCTestCase {
         XCTAssertTrue(destination.waitForExistence(timeout: 5))
         let start = source.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         let end = destination.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
-        start.press(forDuration: 0.7, thenDragTo: end)
+        start.press(
+            forDuration: 0.8,
+            thenDragTo: end,
+            withVelocity: .slow,
+            thenHoldForDuration: 1.0
+        )
     }
 
     private func openProjects() {

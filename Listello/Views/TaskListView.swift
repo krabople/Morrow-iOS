@@ -134,10 +134,10 @@ struct TaskListView: View {
                 ) {
                     completeTask(task)
                 }
-                .listelloDraggable(task.id.uuidString, isEnabled: mode == .active)
                 .onTapGesture {
                     editingTask = task
                 }
+                .moveDisabled(mode != .active)
                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -167,8 +167,11 @@ struct TaskListView: View {
                         Label("Delete", systemImage: "trash")
                     }
                 }
-                .dropDestination(for: String.self) { identifiers, _ in
-                    reorderTasks(identifiers, relativeTo: task.id)
+            }
+            .onMove { source, destination in
+                guard mode == .active else { return }
+                withAnimation(.snappy) {
+                    store.moveTasks(source, to: destination, within: visibleTasks)
                 }
             }
         }
@@ -293,21 +296,6 @@ struct TaskListView: View {
             _ = await calendarService.deleteEvent(for: storedTask)
             withAnimation { store.deleteTask(task) }
         }
-    }
-
-    private func reorderTasks(_ identifiers: [String], relativeTo targetID: UUID) -> Bool {
-        guard
-            mode == .active,
-            let value = identifiers.first,
-            let draggedID = UUID(uuidString: value),
-            draggedID != targetID,
-            visibleTasks.contains(where: { $0.id == draggedID })
-        else { return false }
-
-        withAnimation(.snappy) {
-            store.moveTask(draggedID, relativeTo: targetID, within: visibleTasks)
-        }
-        return true
     }
 
 }
