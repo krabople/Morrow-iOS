@@ -109,6 +109,51 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(store.orderedProjects.map(\.name), ["Gamma", "Beta", "Alpha"])
     }
 
+    func testTaskAndProjectOrderSurvivesRelaunch() throws {
+        var store: TaskStore? = makeStore()
+        let first = try XCTUnwrap(store?.addTask(title: "First"))
+        store?.addTask(title: "Second")
+        let third = try XCTUnwrap(store?.addTask(title: "Third"))
+        let alpha = try XCTUnwrap(store?.addProject(name: "Alpha", color: .teal))
+        let beta = try XCTUnwrap(store?.addProject(name: "Beta", color: .sky))
+
+        store?.moveTask(third.id, relativeTo: first.id, within: store?.activeTasks ?? [])
+        store?.moveProject(beta.id, relativeTo: alpha.id)
+        store = nil
+
+        let restored = makeStore()
+        XCTAssertEqual(restored.activeTasks.map(\.title), ["Third", "First", "Second"])
+        XCTAssertEqual(restored.orderedProjects.map(\.name), ["Beta", "Alpha"])
+    }
+
+    func testNearestReorderTargetUsesRowCentres() {
+        let first = UUID()
+        let second = UUID()
+        let third = UUID()
+        let frames = [
+            first: CGRect(x: 0, y: 0, width: 300, height: 40),
+            second: CGRect(x: 0, y: 50, width: 300, height: 40),
+            third: CGRect(x: 0, y: 100, width: 300, height: 40)
+        ]
+
+        XCTAssertEqual(
+            nearestReorderTarget(
+                to: CGPoint(x: 290, y: 77),
+                frames: frames,
+                allowedIDs: [first, second, third]
+            ),
+            second
+        )
+        XCTAssertEqual(
+            nearestReorderTarget(
+                to: CGPoint(x: 20, y: 500),
+                frames: frames,
+                allowedIDs: [first, second, third]
+            ),
+            third
+        )
+    }
+
     func testReminderImportUsesDestinationTerminologyDefaults() {
         let store = makeStore()
         let list = store.addProject(name: "Reading", color: .mint, kind: .list)!
@@ -397,3 +442,4 @@ final class LocalizationTests: XCTestCase {
             + value.components(separatedBy: "%d").count - 1
     }
 }
+

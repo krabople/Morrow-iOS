@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 
 struct ProjectsSidebar: View {
     @EnvironmentObject private var store: TaskStore
@@ -12,6 +11,9 @@ struct ProjectsSidebar: View {
     @State private var projectToDelete: ProjectItem?
     @State private var draggedProjectID: UUID?
     @State private var lastProjectDropTargetID: UUID?
+    @State private var projectRowFrames: [UUID: CGRect] = [:]
+
+    private let projectReorderSpace = "listello-project-reorder"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -62,6 +64,8 @@ struct ProjectsSidebar: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .coordinateSpace(name: projectReorderSpace)
+            .onPreferenceChange(ListelloReorderFramesKey.self) { projectRowFrames = $0 }
 
             Divider()
 
@@ -168,17 +172,12 @@ struct ProjectsSidebar: View {
                     .foregroundStyle(.secondary)
             }
 
-            Image(systemName: "line.3.horizontal")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 32, height: 44)
-                .contentShape(Rectangle())
-                .onDrag {
-                    draggedProjectID = project.id
-                    lastProjectDropTargetID = nil
-                    return NSItemProvider(object: project.id.uuidString as NSString)
-                }
-                .accessibilityLabel("Reorder")
+            ListelloReorderHandle(
+                coordinateSpace: projectReorderSpace,
+                isDragging: draggedProjectID == project.id,
+                onChanged: { reorderProject(project.id, at: $0) },
+                onEnded: finishProjectReorder
+            )
         }
         .contentShape(Rectangle())
         .background(
@@ -191,18 +190,7 @@ struct ProjectsSidebar: View {
                     .stroke(project.color.tint.opacity(0.45), lineWidth: 1)
             }
         }
-        .onDrop(
-            of: [UTType.text],
-            delegate: ListelloReorderDropDelegate(
-                targetID: project.id,
-                draggedID: $draggedProjectID,
-                lastTargetID: $lastProjectDropTargetID
-            ) { draggedID, targetID in
-                withAnimation(.snappy) {
-                    store.moveProject(draggedID, relativeTo: targetID)
-                }
-            }
-        )
+        .listelloReorderFrame(id: project.id, in: projectReorderSpace)
     }
 
     private func selectionRow(
@@ -268,4 +256,38 @@ struct ProjectsSidebar: View {
         selectedProjectID = projectID
         withAnimation(.snappy) { isPresented = false }
     }
+
+    private func reorderProject(_ projectID: UUID, at location: CGPoint) {
+        if draggedProjectID == nil {
+            draggedProjectID = projectID
+            lastProjectDropTargetID = projectID
+        }
+
+        let currentProjects = store.orderedProjects
+        guard
+            draggedProjectID == projectID,
+            let targetID = nearestReorderTarget(
+                to: location,
+                frames: projectRowFrames,
+                allowedIDs: Set(currentProjects.map(\.id))
+            )
+        else { return }
+
+        if targetID == projectID {
+            lastProjectDropTargetID = projectID
+            return
+        }
+        guard lastProjectDropTargetID != targetID else { return }
+
+        lastProjectDropTargetID = targetID
+        withAnimation(.snappy) {
+            store.moveProject(projectID, relativeTo: targetID)
+        }
+    }
+
+    private func finishProjectReorder() {
+        draggedProjectID = nil
+        lastProjectDropTargetID = nil
+    }
 }
+
