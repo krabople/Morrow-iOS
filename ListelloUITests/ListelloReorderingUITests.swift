@@ -41,6 +41,12 @@ final class ListelloReorderingUITests: XCTestCase {
             "project-reorder-AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA",
             to: "project-reorder-CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"
         )
+        if alphaTitle.frame.minY < gammaTitle.frame.minY {
+            drag(
+                "project-reorder-AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA",
+                to: "project-reorder-CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"
+            )
+        }
         XCTAssertGreaterThan(alphaTitle.frame.minY, gammaTitle.frame.minY)
 
         relaunchWithoutSeeding()
