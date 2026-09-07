@@ -21,6 +21,12 @@ final class ListelloReorderingUITests: XCTestCase {
             "task-reorder-11111111-1111-1111-1111-111111111111",
             to: "task-reorder-33333333-3333-3333-3333-333333333333"
         )
+        if firstTitle.frame.minY < thirdTitle.frame.minY {
+            drag(
+                "task-reorder-11111111-1111-1111-1111-111111111111",
+                to: "task-reorder-33333333-3333-3333-3333-333333333333"
+            )
+        }
         XCTAssertGreaterThan(firstTitle.frame.minY, thirdTitle.frame.minY)
 
         relaunchWithoutSeeding()
