@@ -133,6 +133,8 @@ struct ListelloTutorialOverlay: View {
     let stepNumber: Int
     let stepCount: Int
     let targetFrame: CGRect?
+    let containerSize: CGSize
+    let safeAreaInsets: EdgeInsets
     let previous: () -> Void
     let next: () -> Void
     let skip: () -> Void
@@ -140,52 +142,57 @@ struct ListelloTutorialOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        GeometryReader { proxy in
-            let visibleTarget = targetFrame.flatMap { frame in
-                frame.width > 1 && frame.height > 1 ? frame.insetBy(dx: -8, dy: -8) : nil
-            }
-            let cardAtTop = visibleTarget.map { $0.midY > proxy.size.height * 0.52 } ?? false
-
-            ZStack {
-                dimmingLayer(targetFrame: visibleTarget)
-
-                if let visibleTarget {
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .stroke(step.tint, lineWidth: 3)
-                        .frame(width: visibleTarget.width, height: visibleTarget.height)
-                        .position(x: visibleTarget.midX, y: visibleTarget.midY)
-                        .shadow(color: step.tint.opacity(0.55), radius: 10)
-                        .accessibilityHidden(true)
-                }
-
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(ListelloTutorialL10n.text("Skip"), action: skip)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(.black.opacity(0.28), in: Capsule())
-                    }
-
-                    if cardAtTop {
-                        tutorialCard
-                        Spacer(minLength: 24)
-                    } else {
-                        Spacer(minLength: 24)
-                        tutorialCard
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
-                .padding(.bottom, max(proxy.safeAreaInsets.bottom + 72, 86))
-            }
-            .contentShape(Rectangle())
+        let visibleTarget = targetFrame.flatMap { frame in
+            frame.width > 1 && frame.height > 1 ? frame.insetBy(dx: -8, dy: -8) : nil
         }
-        .ignoresSafeArea()
+        let cardAtTop = visibleTarget.map { $0.midY > containerSize.height * 0.52 } ?? false
+
+        ZStack {
+            dimmingLayer(targetFrame: visibleTarget)
+
+            if let visibleTarget {
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(step.tint, lineWidth: 3)
+                    .frame(width: visibleTarget.width, height: visibleTarget.height)
+                    .position(x: visibleTarget.midX, y: visibleTarget.midY)
+                    .shadow(color: step.tint.opacity(0.55), radius: 10)
+                    .accessibilityElement()
+                    .accessibilityLabel("Tutorial highlight")
+                    .accessibilityIdentifier("tutorial-highlight")
+                    .accessibilityHidden(!isTutorialUITest)
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(ListelloTutorialL10n.text("Skip"), action: skip)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.black.opacity(0.28), in: Capsule())
+                }
+
+                if cardAtTop {
+                    tutorialCard
+                    Spacer(minLength: 24)
+                } else {
+                    Spacer(minLength: 24)
+                    tutorialCard
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, max(safeAreaInsets.top + 10, 18))
+            .padding(.bottom, max(safeAreaInsets.bottom + 72, 86))
+        }
+        .frame(width: containerSize.width, height: containerSize.height)
+        .contentShape(Rectangle())
         .transition(.opacity)
         .animation(reduceMotion ? nil : .snappy, value: step)
+    }
+
+    private var isTutorialUITest: Bool {
+        ProcessInfo.processInfo.arguments.contains("--listello-tutorial-ui-test")
     }
 
     private func dimmingLayer(targetFrame: CGRect?) -> some View {
@@ -266,6 +273,8 @@ extension View {
                         targetFrame: step.target.flatMap { target in
                             anchors[target].map { proxy[$0] }
                         },
+                        containerSize: proxy.size,
+                        safeAreaInsets: proxy.safeAreaInsets,
                         previous: previous,
                         next: next,
                         skip: skip

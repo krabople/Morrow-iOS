@@ -26,11 +26,20 @@ final class ListelloTutorialUITests: XCTestCase {
             "Change defaults, appearance and archiving here. You can replay this tutorial whenever you like."
         ]
 
-        for message in expectedMessages {
+        let targetControls = [
+            app.textFields["Add a task"],
+            app.buttons["Open projects"],
+            app.buttons["Sort"],
+            app.buttons["Add to schedule"],
+            app.buttons["Replay tutorial"]
+        ]
+
+        for (message, targetControl) in zip(expectedMessages, targetControls) {
             let next = app.buttons["Next"]
             XCTAssertTrue(next.waitForExistence(timeout: 3))
             next.tap()
             XCTAssertTrue(app.staticTexts[message].waitForExistence(timeout: 3))
+            assertHighlightIsVerticallyAligned(with: targetControl)
         }
 
         let done = app.buttons["Done"]
@@ -52,5 +61,22 @@ final class ListelloTutorialUITests: XCTestCase {
         app.launch()
 
         XCTAssertFalse(app.staticTexts["A simple, flexible home for tasks, lists and plans."].waitForExistence(timeout: 2))
+    }
+
+    private func assertHighlightIsVerticallyAligned(
+        with target: XCUIElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let highlight = app.descendants(matching: .any)["tutorial-highlight"]
+        XCTAssertTrue(target.waitForExistence(timeout: 3), file: file, line: line)
+        XCTAssertTrue(highlight.waitForExistence(timeout: 3), file: file, line: line)
+        XCTAssertLessThanOrEqual(
+            abs(highlight.frame.midY - target.frame.midY),
+            3,
+            "Tutorial highlight must share the target control's vertical centre",
+            file: file,
+            line: line
+        )
     }
 }
