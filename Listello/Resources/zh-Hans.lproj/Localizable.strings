@@ -240,6 +240,7 @@
 "Scheduled date" = "计划日期";
 "Ascending" = "升序";
 "Descending" = "降序";
+"Keep this time and shift later items" = "保留此时间并顺延后续项目";
 "Edit Break" = "编辑休息";
 "List view" = "列表视图";
 "New Break" = "新建休息";

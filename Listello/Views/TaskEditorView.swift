@@ -11,6 +11,7 @@ struct TaskEditorView: View {
     @State private var scheduleConflict: ScheduleConflict?
     @State private var isSaving = false
     @State private var calendarMessage: String?
+    @State private var conflictCalendarEntries: [CalendarEntry] = []
 
     let isNew: Bool
     private let originalTask: TaskItem
@@ -138,6 +139,11 @@ struct TaskEditorView: View {
                     Button(L10n.format("keep_time", conflict.chosenStart.formatted(date: .omitted, time: .shortened))) {
                         saveDirectly()
                     }
+                    if conflict.canShiftFollowingEntries {
+                        Button("Keep this time and shift later items") {
+                            shiftFollowingAndSave()
+                        }
+                    }
                     Button("Cancel", role: .cancel) { scheduleConflict = nil }
                 }
             } message: {
@@ -253,6 +259,7 @@ struct TaskEditorView: View {
             }
 
             if let conflict = store.scheduleConflict(for: draft, calendarEntries: calendarEntries) {
+                conflictCalendarEntries = calendarEntries
                 scheduleConflict = conflict
                 isSaving = false
             } else {
@@ -265,6 +272,21 @@ struct TaskEditorView: View {
         scheduleConflict = nil
         isSaving = true
         Task { await persistAndDismiss() }
+    }
+
+    private func shiftFollowingAndSave() {
+        let calendarEntries = conflictCalendarEntries
+        scheduleConflict = nil
+        isSaving = true
+        Task {
+            let shiftedTasks = await store.saveTaskShiftingFollowing(
+                draft,
+                calendarEntries: calendarEntries
+            )
+            await calendarService.rescheduleEvents(for: shiftedTasks)
+            isSaving = false
+            dismiss()
+        }
     }
 
     private func persistAndDismiss() async {

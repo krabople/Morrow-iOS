@@ -103,6 +103,25 @@ final class CalendarService: ObservableObject {
         }
     }
 
+    func rescheduleEvents(for tasks: [TaskItem]) async {
+        let tasksWithEvents = tasks.filter { $0.calendarEventIdentifier != nil && $0.scheduledAt != nil }
+        guard !tasksWithEvents.isEmpty else { return }
+        if !hasFullAccess {
+            guard await requestFullAccess() else { return }
+        }
+
+        for task in tasksWithEvents {
+            guard
+                let identifier = task.calendarEventIdentifier,
+                let startDate = task.scheduledAt,
+                let event = eventStore.event(withIdentifier: identifier)
+            else { continue }
+            event.startDate = startDate
+            event.endDate = startDate.addingTimeInterval(TimeInterval(task.effectiveDurationMinutes * 60))
+            try? eventStore.save(event, span: .thisEvent, commit: true)
+        }
+    }
+
     private static func hexColor(_ cgColor: CGColor) -> String {
         let color = UIColor(cgColor: cgColor)
         var red: CGFloat = 0

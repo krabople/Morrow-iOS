@@ -240,6 +240,7 @@
 "Scheduled date" = "วันที่กำหนดไว้";
 "Ascending" = "จากน้อยไปมาก";
 "Descending" = "จากมากไปน้อย";
+"Keep this time and shift later items" = "ใช้เวลานี้และเลื่อนรายการถัดไป";
 "Edit Break" = "แก้ไขช่วงพัก";
 "List view" = "มุมมองลิสต์";
 "New Break" = "ช่วงพักใหม่";

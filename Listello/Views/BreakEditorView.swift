@@ -10,6 +10,7 @@ struct BreakEditorView: View {
     @State private var conflict: ScheduleConflict?
     @State private var showsDeleteConfirmation = false
     @State private var isSaving = false
+    @State private var conflictCalendarEntries: [CalendarEntry] = []
 
     let isNew: Bool
 
@@ -83,6 +84,11 @@ struct BreakEditorView: View {
                     Button(L10n.format("keep_time", conflict.chosenStart.formatted(date: .omitted, time: .shortened))) {
                         save()
                     }
+                    if conflict.canShiftFollowingEntries {
+                        Button("Keep this time and shift later items") {
+                            shiftFollowingAndSave()
+                        }
+                    }
                     Button("Cancel", role: .cancel) { self.conflict = nil }
                 }
             } message: {
@@ -118,6 +124,7 @@ struct BreakEditorView: View {
                 entries = []
             }
             if let found = store.scheduleConflict(for: draft, calendarEntries: entries) {
+                conflictCalendarEntries = entries
                 conflict = found
                 isSaving = false
             } else {
@@ -131,5 +138,20 @@ struct BreakEditorView: View {
         store.saveBreak(draft)
         isSaving = false
         dismiss()
+    }
+
+    private func shiftFollowingAndSave() {
+        let calendarEntries = conflictCalendarEntries
+        conflict = nil
+        isSaving = true
+        Task {
+            let shiftedTasks = store.saveBreakShiftingFollowing(
+                draft,
+                calendarEntries: calendarEntries
+            )
+            await calendarService.rescheduleEvents(for: shiftedTasks)
+            isSaving = false
+            dismiss()
+        }
     }
 }

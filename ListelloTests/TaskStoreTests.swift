@@ -269,6 +269,106 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(conflict?.suggestedStart, ten)
     }
 
+    func testInsertingTaskShiftsOnlyUntilAGapAbsorbsTheDelay() async {
+        let store = makeStore()
+        let day = Date(timeIntervalSince1970: 1_800_000_000)
+        let nine = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day)!
+        let nineThirty = calendar.date(bySettingHour: 9, minute: 30, second: 0, of: day)!
+        let tenThirty = calendar.date(bySettingHour: 10, minute: 30, second: 0, of: day)!
+        let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day)!
+
+        await store.saveTask(TaskItem(title: "First", scheduledAt: nineThirty, expectedDurationMinutes: 60))
+        await store.saveTask(TaskItem(title: "Second", scheduledAt: tenThirty, expectedDurationMinutes: 30))
+        await store.saveTask(TaskItem(title: "After the gap", scheduledAt: noon, expectedDurationMinutes: 30))
+        let inserted = TaskItem(title: "Inserted", scheduledAt: nine, expectedDurationMinutes: 60)
+
+        XCTAssertTrue(store.scheduleConflict(for: inserted, calendarEntries: [])?.canShiftFollowingEntries == true)
+        let shifted = await store.saveTaskShiftingFollowing(inserted, calendarEntries: [])
+
+        XCTAssertEqual(shifted.map(\.title), ["First", "Second"])
+        let scheduled = store.tasks(on: day)
+        XCTAssertEqual(scheduled.map(\.title), ["Inserted", "First", "Second", "After the gap"])
+        XCTAssertEqual(scheduled.compactMap(\.scheduledAt), [
+            nine,
+            calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)!,
+            calendar.date(bySettingHour: 11, minute: 0, second: 0, of: day)!,
+            noon
+        ])
+    }
+
+    func testInsertingBreakShiftsTasksAndBreaksAroundFixedCalendarTime() async {
+        let store = makeStore()
+        let day = Date(timeIntervalSince1970: 1_800_000_000)
+        let nine = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day)!
+        let nineThirty = calendar.date(bySettingHour: 9, minute: 30, second: 0, of: day)!
+        let ten = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)!
+        let tenThirty = calendar.date(bySettingHour: 10, minute: 30, second: 0, of: day)!
+        let eleven = calendar.date(bySettingHour: 11, minute: 0, second: 0, of: day)!
+
+        store.saveBreak(ScheduleBreakItem(title: "Coffee", startDate: nineThirty, durationMinutes: 30))
+        await store.saveTask(TaskItem(title: "Call", scheduledAt: ten, expectedDurationMinutes: 30))
+        let calendarEntry = CalendarEntry(
+            id: "fixed-event",
+            title: "Calendar meeting",
+            notes: "",
+            startDate: tenThirty,
+            endDate: eleven,
+            isAllDay: false,
+            calendarTitle: "Work",
+            colorHex: "#000000"
+        )
+        let inserted = ScheduleBreakItem(title: "Breakfast", startDate: nine, durationMinutes: 60)
+
+        XCTAssertTrue(store.scheduleConflict(for: inserted, calendarEntries: [calendarEntry])?.canShiftFollowingEntries == true)
+        let shiftedTasks = store.saveBreakShiftingFollowing(inserted, calendarEntries: [calendarEntry])
+
+        XCTAssertEqual(shiftedTasks.map(\.title), ["Call"])
+        XCTAssertEqual(store.breaks(on: day).map(\.startDate), [nine, ten])
+        XCTAssertEqual(store.tasks(on: day).first?.scheduledAt, eleven)
+    }
+
+    func testFixedCalendarConflictCannotBeShifted() {
+        let store = makeStore()
+        let day = Date(timeIntervalSince1970: 1_800_000_000)
+        let nine = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day)!
+        let nineThirty = calendar.date(bySettingHour: 9, minute: 30, second: 0, of: day)!
+        let ten = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)!
+        let calendarEntry = CalendarEntry(
+            id: "fixed-event",
+            title: "Calendar meeting",
+            notes: "",
+            startDate: nineThirty,
+            endDate: ten,
+            isAllDay: false,
+            calendarTitle: "Work",
+            colorHex: "#000000"
+        )
+        let inserted = ScheduleBreakItem(title: "Breakfast", startDate: nine, durationMinutes: 60)
+
+        XCTAssertFalse(store.scheduleConflict(for: inserted, calendarEntries: [calendarEntry])?.canShiftFollowingEntries == true)
+    }
+
+    func testShiftedRecurringOccurrenceDoesNotMoveTheSeries() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let start = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow)!
+        let shiftedStart = calendar.date(bySettingHour: 9, minute: 30, second: 0, of: tomorrow)!
+        let followingDay = calendar.date(byAdding: .day, value: 1, to: start)!
+        await store.saveTask(TaskItem(
+            title: "Daily planning",
+            scheduledAt: start,
+            expectedDurationMinutes: 60,
+            recurrence: .daily
+        ))
+        let inserted = TaskItem(title: "Urgent call", scheduledAt: start, expectedDurationMinutes: 30)
+
+        _ = await store.saveTaskShiftingFollowing(inserted, calendarEntries: [])
+
+        XCTAssertEqual(store.tasks(on: start).compactMap(\.scheduledAt), [start, shiftedStart])
+        XCTAssertEqual(store.tasks(on: followingDay).compactMap(\.scheduledAt), [followingDay])
+        XCTAssertEqual(store.tasks.filter(\.isRecurring).count, 1)
+    }
+
     func testSuggestedScheduleStartsWhenMostRecentlyAddedTaskFinishes() async {
         let store = makeStore()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!

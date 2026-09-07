@@ -405,6 +405,7 @@ struct ScheduleConflict: Identifiable, Equatable {
     let conflictingTitle: String
     let chosenStart: Date
     let suggestedStart: Date
+    let canShiftFollowingEntries: Bool
 }
 
 struct ListelloState: Codable {

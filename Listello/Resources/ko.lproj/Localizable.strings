@@ -240,6 +240,7 @@
 "Scheduled date" = "예정 날짜";
 "Ascending" = "오름차순";
 "Descending" = "내림차순";
+"Keep this time and shift later items" = "이 시간을 유지하고 이후 항목 미루기";
 "Edit Break" = "휴식 편집";
 "List view" = "목록 보기";
 "New Break" = "새 휴식";
