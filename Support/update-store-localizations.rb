@@ -34,7 +34,7 @@ def authorization_token
   "#{unsigned}.#{base64url(parts.map { |part| fixed_width(part.value) }.join)}"
 end
 
-def api_request(method, path, body = nil)
+def api_request(method, path, body = nil, allowed_statuses: [])
   uri = URI("#{API_BASE}#{path}")
   request_class = {
     get: Net::HTTP::Get,
@@ -48,13 +48,14 @@ def api_request(method, path, body = nil)
 
   response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
   parsed = response.body.to_s.empty? ? {} : JSON.parse(response.body)
-  return parsed if response.code.to_i.between?(200, 299)
+  status = response.code.to_i
+  return parsed if status.between?(200, 299) || allowed_statuses.include?(status)
 
   warn JSON.pretty_generate(parsed)
   abort "App Store Connect API #{method.to_s.upcase} #{path} failed with HTTP #{response.code}"
 end
 
-def create_resource(type, attributes, relationship_name, related_type, relationship_id)
+def create_resource(type, attributes, relationship_name, related_type, relationship_id, allow_duplicate: false)
   api_request(
     :post,
     "/v1/#{type}",
@@ -66,8 +67,9 @@ def create_resource(type, attributes, relationship_name, related_type, relations
           relationship_name => { data: { type: related_type, id: relationship_id } }
         }
       }
-    }
-  ).fetch("data")
+    },
+    allowed_statuses: allow_duplicate ? [409] : []
+  )["data"]
 end
 
 def update_resource(type, id, attributes)
@@ -76,6 +78,12 @@ def update_resource(type, id, attributes)
     "/v1/#{type}/#{id}",
     { data: { type: type, id: id, attributes: attributes } }
   ).fetch("data")
+end
+
+def localization_by_locale(parent_type, parent_id, collection, locale)
+  api_request(:get, "/v1/#{parent_type}/#{parent_id}/#{collection}?limit=200")
+    .fetch("data")
+    .find { |item| item.dig("attributes", "locale") == locale }
 end
 
 copy = JSON.parse(File.read(File.join(__dir__, "store-localizations.json"))).fetch("languages")
@@ -140,14 +148,29 @@ localizations.each do |item|
     update_resource("appInfoLocalizations", existing.fetch("id"), info_attributes)
     print "Updated"
   else
-    create_resource(
+    created = create_resource(
       "appInfoLocalizations",
       info_attributes.merge(locale: locale),
       "appInfo",
       "appInfos",
-      app_info_id
+      app_info_id,
+      allow_duplicate: true
     )
-    print "Created"
+    if created
+      existing_app_info_by_locale[locale] = created
+      print "Created"
+    else
+      existing = localization_by_locale(
+        "appInfos",
+        app_info_id,
+        "appInfoLocalizations",
+        locale
+      )
+      abort "Could not find existing App Info localization for #{locale}" unless existing
+      update_resource("appInfoLocalizations", existing.fetch("id"), info_attributes)
+      existing_app_info_by_locale[locale] = existing
+      print "Updated"
+    end
   end
   puts " App Info: #{locale}"
 
@@ -162,16 +185,32 @@ localizations.each do |item|
     update_resource("appStoreVersionLocalizations", existing.fetch("id"), version_attributes)
     print "Updated"
   else
-    create_resource(
+    created = create_resource(
       "appStoreVersionLocalizations",
       version_attributes.merge(locale: locale),
       "appStoreVersion",
       "appStoreVersions",
-      version_id
+      version_id,
+      allow_duplicate: true
     )
-    print "Created"
+    if created
+      existing_version_by_locale[locale] = created
+      print "Created"
+    else
+      existing = localization_by_locale(
+        "appStoreVersions",
+        version_id,
+        "appStoreVersionLocalizations",
+        locale
+      )
+      abort "Could not find existing version localization for #{locale}" unless existing
+      update_resource("appStoreVersionLocalizations", existing.fetch("id"), version_attributes)
+      existing_version_by_locale[locale] = existing
+      print "Updated"
+    end
   end
   puts " version metadata: #{locale}"
 end
 
 puts "Localized App Store version #{version_name} in #{localizations.length} locales."
+
