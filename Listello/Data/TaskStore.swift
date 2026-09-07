@@ -375,7 +375,7 @@ final class TaskStore: ObservableObject {
         guard projects.contains(where: { $0.id == project.id }) else { return 0 }
         var importedCount = 0
         var existingTitles = skippingExistingTitles
-            ? Set(tasks.lazy.filter { $0.projectID == project.id }.map { normalizedTitle($0.title) })
+            ? Set(tasks.lazy.filter { $0.projectID == project.id }.map { self.normalizedTitle($0.title) })
             : []
 
         for reminder in reminders {
