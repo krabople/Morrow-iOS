@@ -17,10 +17,8 @@ final class ListelloReorderingUITests: XCTestCase {
         XCTAssertTrue(firstTitle.waitForExistence(timeout: 5))
         XCTAssertTrue(thirdTitle.exists)
 
-        drag(
-            "task-reorder-11111111-1111-1111-1111-111111111111",
-            to: "task-reorder-33333333-3333-3333-3333-333333333333"
-        )
+        app.buttons["reorder-tasks-button"].tap()
+        dragRow(from: firstTitle, to: thirdTitle, trailingX: app.frame.maxX - 24)
         XCTAssertGreaterThan(firstTitle.frame.minY, thirdTitle.frame.minY)
 
         relaunchWithoutSeeding()
@@ -37,10 +35,8 @@ final class ListelloReorderingUITests: XCTestCase {
         XCTAssertTrue(alphaTitle.waitForExistence(timeout: 5))
         XCTAssertTrue(gammaTitle.exists)
 
-        drag(
-            "project-reorder-AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA",
-            to: "project-reorder-CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"
-        )
+        app.buttons["reorder-projects-button"].tap()
+        dragRow(from: alphaTitle, to: gammaTitle, trailingX: min(332, app.frame.maxX - 24))
         XCTAssertGreaterThan(alphaTitle.frame.minY, gammaTitle.frame.minY)
 
         relaunchWithoutSeeding()
@@ -51,12 +47,11 @@ final class ListelloReorderingUITests: XCTestCase {
         )
     }
 
-    private func drag(_ sourceIdentifier: String, to destinationIdentifier: String) {
-        let source = app.descendants(matching: .any)[sourceIdentifier]
-        let destination = app.descendants(matching: .any)[destinationIdentifier]
-        XCTAssertTrue(source.waitForExistence(timeout: 5))
-        XCTAssertTrue(destination.waitForExistence(timeout: 5))
-        source.press(forDuration: 0.15, thenDragTo: destination)
+    private func dragRow(from source: XCUIElement, to destination: XCUIElement, trailingX: CGFloat) {
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let start = origin.withOffset(CGVector(dx: trailingX, dy: source.frame.midY))
+        let end = origin.withOffset(CGVector(dx: trailingX, dy: destination.frame.midY))
+        start.press(forDuration: 0.15, thenDragTo: end)
     }
 
     private func openProjects() {

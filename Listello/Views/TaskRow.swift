@@ -5,10 +5,6 @@ struct TaskRow: View {
     let project: ProjectItem?
     var showsScheduleLabel = true
     var showsNotes = true
-    var reorderCoordinateSpace: String?
-    var isBeingReordered = false
-    var onReorderChanged: ((CGPoint) -> Void)?
-    var onReorderEnded: (() -> Void)?
     let onToggle: () -> Void
 
     private var accent: Color {
@@ -80,15 +76,6 @@ struct TaskRow: View {
 
             Spacer(minLength: 0)
 
-            if let reorderCoordinateSpace, let onReorderChanged, let onReorderEnded {
-                ListelloReorderHandle(
-                    coordinateSpace: reorderCoordinateSpace,
-                    accessibilityIdentifier: "task-reorder-\(task.id.uuidString)",
-                    isDragging: isBeingReordered,
-                    onChanged: onReorderChanged,
-                    onEnded: onReorderEnded
-                )
-            }
         }
         .padding(13)
         .background(accent.opacity(0.095), in: RoundedRectangle(cornerRadius: 18, style: .continuous))

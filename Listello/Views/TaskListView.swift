@@ -12,11 +12,7 @@ struct TaskListView: View {
     @State private var editingTask: TaskItem?
     @State private var suggestion: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
-    @State private var draggedTaskID: UUID?
-    @State private var lastTaskDropTargetID: UUID?
-    @State private var taskRowFrames: [UUID: CGRect] = [:]
-
-    private let taskReorderSpace = "listello-task-reorder"
+    @State private var isReordering = false
 
     private var selectedProject: ProjectItem? {
         store.project(withID: selectedProjectID)
@@ -70,8 +66,22 @@ struct TaskListView: View {
                     .accessibilityLabel("Open projects")
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    if mode == .active, !visibleTasks.isEmpty {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if mode == .active, visibleTasks.count > 1 {
+                        Button {
+                            withAnimation(.snappy) { isReordering.toggle() }
+                        } label: {
+                            if isReordering {
+                                Text("Done")
+                            } else {
+                                Image(systemName: "arrow.up.arrow.down")
+                            }
+                        }
+                        .accessibilityLabel(L10n.text(isReordering ? "Done" : "Reorder"))
+                        .accessibilityIdentifier("reorder-tasks-button")
+                    }
+
+                    if mode == .active, !visibleTasks.isEmpty, !isReordering {
                         Button {
                             suggestion = store.suggestedTask(from: visibleTasks)
                         } label: {
@@ -85,6 +95,7 @@ struct TaskListView: View {
                 text: $query,
                 prompt: L10n.text(selectedProject?.kind == .list ? "Search items" : "Search tasks")
             )
+            .onChange(of: mode) { _, _ in isReordering = false }
             .safeAreaInset(edge: .bottom) {
                 if mode == .active {
                     quickAddBar
@@ -134,13 +145,7 @@ struct TaskListView: View {
                 TaskRow(
                     task: task,
                     project: store.project(withID: task.projectID),
-                    showsNotes: store.preferences.showNotesInList,
-                    reorderCoordinateSpace: mode == .active ? taskReorderSpace : nil,
-                    isBeingReordered: draggedTaskID == task.id,
-                    onReorderChanged: mode == .active ? { location in
-                        reorderTask(task.id, at: location)
-                    } : nil,
-                    onReorderEnded: mode == .active ? finishTaskReorder : nil
+                    showsNotes: store.preferences.showNotesInList
                 ) {
                     completeTask(task)
                 }
@@ -150,7 +155,6 @@ struct TaskListView: View {
                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
-                .listelloReorderFrame(id: task.id, in: taskReorderSpace)
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
                         completeTask(task)
@@ -178,11 +182,16 @@ struct TaskListView: View {
                     }
                 }
             }
+            .onMove { source, destination in
+                guard mode == .active else { return }
+                withAnimation(.snappy) {
+                    store.moveTasks(source, to: destination, within: visibleTasks)
+                }
+            }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .coordinateSpace(name: taskReorderSpace)
-        .onPreferenceChange(ListelloReorderFramesKey.self) { taskRowFrames = $0 }
+        .environment(\.editMode, .constant(isReordering ? .active : .inactive))
         .overlay {
             if visibleTasks.isEmpty {
                 ContentUnavailableView(
@@ -304,37 +313,5 @@ struct TaskListView: View {
         }
     }
 
-    private func reorderTask(_ taskID: UUID, at location: CGPoint) {
-        if draggedTaskID == nil {
-            draggedTaskID = taskID
-            lastTaskDropTargetID = taskID
-        }
-
-        let currentTasks = visibleTasks
-        guard
-            draggedTaskID == taskID,
-            let targetID = nearestReorderTarget(
-                to: location,
-                frames: taskRowFrames,
-                allowedIDs: Set(currentTasks.map(\.id))
-            )
-        else { return }
-
-        if targetID == taskID {
-            lastTaskDropTargetID = taskID
-            return
-        }
-        guard lastTaskDropTargetID != targetID else { return }
-
-        lastTaskDropTargetID = targetID
-        withAnimation(.snappy) {
-            store.moveTask(taskID, relativeTo: targetID, within: currentTasks)
-        }
-    }
-
-    private func finishTaskReorder() {
-        draggedTaskID = nil
-        lastTaskDropTargetID = nil
-    }
 }
 

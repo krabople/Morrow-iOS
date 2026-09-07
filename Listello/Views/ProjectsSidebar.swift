@@ -9,11 +9,7 @@ struct ProjectsSidebar: View {
     @State private var editingProject: ProjectItem?
     @State private var newProject: ProjectItem?
     @State private var projectToDelete: ProjectItem?
-    @State private var draggedProjectID: UUID?
-    @State private var lastProjectDropTargetID: UUID?
-    @State private var projectRowFrames: [UUID: CGRect] = [:]
-
-    private let projectReorderSpace = "listello-project-reorder"
+    @State private var isReordering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,6 +24,21 @@ struct ProjectsSidebar: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                if store.projects.count > 1 {
+                    Button {
+                        withAnimation(.snappy) { isReordering.toggle() }
+                    } label: {
+                        if isReordering {
+                            Text("Done")
+                                .font(.subheadline.weight(.semibold))
+                        } else {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.body.weight(.semibold))
+                        }
+                    }
+                    .accessibilityLabel(L10n.text(isReordering ? "Done" : "Reorder"))
+                    .accessibilityIdentifier("reorder-projects-button")
+                }
                 Button {
                     withAnimation(.snappy) { isPresented = false }
                 } label: {
@@ -61,11 +72,15 @@ struct ProjectsSidebar: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
+                .onMove { source, destination in
+                    withAnimation(.snappy) {
+                        store.moveProjects(source, to: destination)
+                    }
+                }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .coordinateSpace(name: projectReorderSpace)
-            .onPreferenceChange(ListelloReorderFramesKey.self) { projectRowFrames = $0 }
+            .environment(\.editMode, .constant(isReordering ? .active : .inactive))
 
             Divider()
 
@@ -172,13 +187,6 @@ struct ProjectsSidebar: View {
                     .foregroundStyle(.secondary)
             }
 
-            ListelloReorderHandle(
-                coordinateSpace: projectReorderSpace,
-                accessibilityIdentifier: "project-reorder-\(project.id.uuidString)",
-                isDragging: draggedProjectID == project.id,
-                onChanged: { reorderProject(project.id, at: $0) },
-                onEnded: finishProjectReorder
-            )
         }
         .contentShape(Rectangle())
         .background(
@@ -191,7 +199,6 @@ struct ProjectsSidebar: View {
                     .stroke(project.color.tint.opacity(0.45), lineWidth: 1)
             }
         }
-        .listelloReorderFrame(id: project.id, in: projectReorderSpace)
     }
 
     private func selectionRow(
@@ -258,37 +265,5 @@ struct ProjectsSidebar: View {
         withAnimation(.snappy) { isPresented = false }
     }
 
-    private func reorderProject(_ projectID: UUID, at location: CGPoint) {
-        if draggedProjectID == nil {
-            draggedProjectID = projectID
-            lastProjectDropTargetID = projectID
-        }
-
-        let currentProjects = store.orderedProjects
-        guard
-            draggedProjectID == projectID,
-            let targetID = nearestReorderTarget(
-                to: location,
-                frames: projectRowFrames,
-                allowedIDs: Set(currentProjects.map(\.id))
-            )
-        else { return }
-
-        if targetID == projectID {
-            lastProjectDropTargetID = projectID
-            return
-        }
-        guard lastProjectDropTargetID != targetID else { return }
-
-        lastProjectDropTargetID = targetID
-        withAnimation(.snappy) {
-            store.moveProject(projectID, relativeTo: targetID)
-        }
-    }
-
-    private func finishProjectReorder() {
-        draggedProjectID = nil
-        lastProjectDropTargetID = nil
-    }
 }
 

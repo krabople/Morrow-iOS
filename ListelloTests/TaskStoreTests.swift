@@ -126,34 +126,6 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(restored.orderedProjects.map(\.name), ["Beta", "Alpha"])
     }
 
-    func testNearestReorderTargetUsesRowCentres() {
-        let first = UUID()
-        let second = UUID()
-        let third = UUID()
-        let frames = [
-            first: CGRect(x: 0, y: 0, width: 300, height: 40),
-            second: CGRect(x: 0, y: 50, width: 300, height: 40),
-            third: CGRect(x: 0, y: 100, width: 300, height: 40)
-        ]
-
-        XCTAssertEqual(
-            nearestReorderTarget(
-                to: CGPoint(x: 290, y: 77),
-                frames: frames,
-                allowedIDs: [first, second, third]
-            ),
-            second
-        )
-        XCTAssertEqual(
-            nearestReorderTarget(
-                to: CGPoint(x: 20, y: 500),
-                frames: frames,
-                allowedIDs: [first, second, third]
-            ),
-            third
-        )
-    }
-
     func testReminderImportUsesDestinationTerminologyDefaults() {
         let store = makeStore()
         let list = store.addProject(name: "Reading", color: .mint, kind: .list)!
