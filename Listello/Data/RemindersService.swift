@@ -11,7 +11,7 @@ struct ReminderSourceList: Identifiable, Equatable {
 
 @MainActor
 final class RemindersService: ObservableObject {
-    private let eventStore = EKEventStore()
+    private var eventStore = EKEventStore()
 
     var authorizationStatus: EKAuthorizationStatus {
         EKEventStore.authorizationStatus(for: .reminder)
@@ -23,10 +23,29 @@ final class RemindersService: ObservableObject {
         if hasFullAccess { return true }
         guard authorizationStatus == .notDetermined else { return false }
         do {
-            return try await eventStore.requestFullAccessToReminders()
+            let granted = try await eventStore.requestFullAccessToReminders()
+            if granted {
+                eventStore = EKEventStore()
+                await Task.yield()
+            }
+            return granted
         } catch {
             return false
         }
+    }
+
+    func refreshedSourceLists() async -> [ReminderSourceList] {
+        guard hasFullAccess else { return [] }
+        eventStore = EKEventStore()
+        await Task.yield()
+
+        var lists = sourceLists()
+        if lists.isEmpty {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            eventStore = EKEventStore()
+            lists = sourceLists()
+        }
+        return lists
     }
 
     func sourceLists() -> [ReminderSourceList] {

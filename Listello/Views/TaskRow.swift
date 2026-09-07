@@ -5,7 +5,7 @@ struct TaskRow: View {
     let project: ProjectItem?
     var showsScheduleLabel = true
     var showsNotes = true
-    var reorderIdentifier: String?
+    var onDragStart: (() -> NSItemProvider)?
     let onToggle: () -> Void
 
     private var accent: Color {
@@ -77,17 +77,13 @@ struct TaskRow: View {
 
             Spacer(minLength: 0)
 
-            if let reorderIdentifier {
+            if let onDragStart {
                 Image(systemName: "line.3.horizontal")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 38)
                     .contentShape(Rectangle())
-                    .draggable(reorderIdentifier) {
-                        Image(systemName: "line.3.horizontal")
-                            .padding(14)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    }
+                    .onDrag(onDragStart)
                     .accessibilityLabel("Reorder")
             }
         }

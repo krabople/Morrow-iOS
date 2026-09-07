@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TaskListView: View {
     @EnvironmentObject private var store: TaskStore
@@ -12,6 +13,8 @@ struct TaskListView: View {
     @State private var editingTask: TaskItem?
     @State private var suggestion: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
+    @State private var draggedTaskID: UUID?
+    @State private var lastTaskDropTargetID: UUID?
 
     private var selectedProject: ProjectItem? {
         store.project(withID: selectedProjectID)
@@ -130,7 +133,11 @@ struct TaskListView: View {
                     task: task,
                     project: store.project(withID: task.projectID),
                     showsNotes: store.preferences.showNotesInList,
-                    reorderIdentifier: mode == .active ? "task:\(task.id.uuidString)" : nil
+                    onDragStart: mode == .active ? {
+                        draggedTaskID = task.id
+                        lastTaskDropTargetID = nil
+                        return NSItemProvider(object: task.id.uuidString as NSString)
+                    } : nil
                 ) {
                     completeTask(task)
                 }
@@ -166,18 +173,19 @@ struct TaskListView: View {
                         Label("Delete", systemImage: "trash")
                     }
                 }
-                .dropDestination(for: String.self) { identifiers, _ in
-                    guard
-                        mode == .active,
-                        let identifier = identifiers.first,
-                        identifier.hasPrefix("task:"),
-                        let draggedID = UUID(uuidString: String(identifier.dropFirst(5)))
-                    else { return false }
-                    withAnimation(.snappy) {
-                        store.moveTask(draggedID, relativeTo: task.id, within: visibleTasks)
+                .onDrop(
+                    of: [UTType.text],
+                    delegate: ListelloReorderDropDelegate(
+                        targetID: task.id,
+                        draggedID: $draggedTaskID,
+                        lastTargetID: $lastTaskDropTargetID
+                    ) { draggedID, targetID in
+                        guard mode == .active else { return }
+                        withAnimation(.snappy) {
+                            store.moveTask(draggedID, relativeTo: targetID, within: visibleTasks)
+                        }
                     }
-                    return true
-                }
+                )
             }
         }
         .listStyle(.plain)

@@ -92,17 +92,21 @@ final class TaskStoreTests: XCTestCase {
 
     func testTasksAndProjectsCanBeReordered() {
         let store = makeStore()
-        store.addTask(title: "First")
-        store.addTask(title: "Second")
+        let first = store.addTask(title: "First")!
+        let second = store.addTask(title: "Second")!
         store.addTask(title: "Third")
         store.moveTasks(IndexSet(integer: 0), to: 3, within: store.activeTasks)
         XCTAssertEqual(store.activeTasks.map(\.title), ["Second", "Third", "First"])
+        store.moveTask(first.id, relativeTo: second.id, within: store.activeTasks)
+        XCTAssertEqual(store.activeTasks.map(\.title), ["First", "Second", "Third"])
 
-        store.addProject(name: "Alpha", color: .teal)
-        store.addProject(name: "Beta", color: .sky)
+        let alpha = store.addProject(name: "Alpha", color: .teal)!
+        let beta = store.addProject(name: "Beta", color: .sky)!
         store.addProject(name: "Gamma", color: .amber)
         store.moveProjects(IndexSet(integer: 2), to: 0)
         XCTAssertEqual(store.orderedProjects.map(\.name), ["Gamma", "Alpha", "Beta"])
+        store.moveProject(alpha.id, relativeTo: beta.id)
+        XCTAssertEqual(store.orderedProjects.map(\.name), ["Gamma", "Beta", "Alpha"])
     }
 
     func testReminderImportUsesDestinationTerminologyDefaults() {

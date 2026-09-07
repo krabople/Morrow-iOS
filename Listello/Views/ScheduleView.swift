@@ -533,6 +533,14 @@ private struct ScheduleTimelineView: View {
                 ScrollViewReader { proxy in
                     ScrollView(.vertical) {
                         ZStack(alignment: .topLeading) {
+                            VStack(spacing: 0) {
+                                ForEach(0..<24, id: \.self) { hour in
+                                    Color.clear
+                                        .frame(height: hourHeight)
+                                        .id("hour-\(hour)")
+                                }
+                            }
+
                             hourGrid(width: geometry.size.width)
 
                             ForEach(placements) { placement in
@@ -559,7 +567,10 @@ private struct ScheduleTimelineView: View {
                         .frame(width: geometry.size.width, height: hourHeight * 24 + 1, alignment: .topLeading)
                     }
                     .onAppear {
-                        proxy.scrollTo("hour-\(initialHour)", anchor: .top)
+                        scrollToMorning(using: proxy)
+                    }
+                    .onChange(of: day) { _, _ in
+                        scrollToMorning(using: proxy)
                     }
                 }
             }
@@ -623,13 +634,6 @@ private struct ScheduleTimelineView: View {
         return result
     }
 
-    private var initialHour: Int {
-        if Calendar.current.isDateInToday(day) {
-            return max(0, Calendar.current.component(.hour, from: Date()) - 1)
-        }
-        return max(0, (timedItems.first.map { Calendar.current.component(.hour, from: $0.startDate) } ?? 9) - 1)
-    }
-
     @ViewBuilder
     private func hourGrid(width: CGFloat) -> some View {
         ForEach(0..<24, id: \.self) { hour in
@@ -644,7 +648,12 @@ private struct ScheduleTimelineView: View {
             }
             .frame(height: 1)
             .offset(y: CGFloat(hour) * hourHeight)
-            .id("hour-\(hour)")
+        }
+    }
+
+    private func scrollToMorning(using proxy: ScrollViewProxy) {
+        DispatchQueue.main.async {
+            proxy.scrollTo("hour-8", anchor: .top)
         }
     }
 
@@ -783,4 +792,3 @@ private struct CalendarEntryRow: View {
         entry.calendarTitle
     }
 }
-

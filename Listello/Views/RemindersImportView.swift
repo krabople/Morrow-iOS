@@ -3,6 +3,7 @@ import UIKit
 
 struct RemindersImportView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var store: TaskStore
     @EnvironmentObject private var remindersService: RemindersService
 
@@ -71,6 +72,10 @@ struct RemindersImportView: View {
             }
         }
         .task { await loadLists() }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active, !isLoading else { return }
+            Task { await loadLists() }
+        }
         .alert(
             "Import Complete",
             isPresented: Binding(
@@ -139,7 +144,7 @@ struct RemindersImportView: View {
         let granted = await remindersService.requestFullAccess()
         accessDenied = !granted
         if granted {
-            sourceLists = remindersService.sourceLists()
+            sourceLists = await remindersService.refreshedSourceLists()
             for sourceList in sourceLists where choices[sourceList.id] == nil {
                 choices[sourceList.id] = ImportChoice()
             }

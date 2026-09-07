@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct ProjectsSidebar: View {
     @EnvironmentObject private var store: TaskStore
@@ -9,6 +10,8 @@ struct ProjectsSidebar: View {
     @State private var editingProject: ProjectItem?
     @State private var newProject: ProjectItem?
     @State private var projectToDelete: ProjectItem?
+    @State private var draggedProjectID: UUID?
+    @State private var lastProjectDropTargetID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -170,10 +173,10 @@ struct ProjectsSidebar: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 32, height: 44)
                 .contentShape(Rectangle())
-                .draggable("project:\(project.id.uuidString)") {
-                    Label(project.name, systemImage: project.kind.systemImage)
-                        .padding(12)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .onDrag {
+                    draggedProjectID = project.id
+                    lastProjectDropTargetID = nil
+                    return NSItemProvider(object: project.id.uuidString as NSString)
                 }
                 .accessibilityLabel("Reorder")
         }
@@ -188,17 +191,18 @@ struct ProjectsSidebar: View {
                     .stroke(project.color.tint.opacity(0.45), lineWidth: 1)
             }
         }
-        .dropDestination(for: String.self) { identifiers, _ in
-            guard
-                let identifier = identifiers.first,
-                identifier.hasPrefix("project:"),
-                let draggedID = UUID(uuidString: String(identifier.dropFirst(8)))
-            else { return false }
-            withAnimation(.snappy) {
-                store.moveProject(draggedID, relativeTo: project.id)
+        .onDrop(
+            of: [UTType.text],
+            delegate: ListelloReorderDropDelegate(
+                targetID: project.id,
+                draggedID: $draggedProjectID,
+                lastTargetID: $lastProjectDropTargetID
+            ) { draggedID, targetID in
+                withAnimation(.snappy) {
+                    store.moveProject(draggedID, relativeTo: targetID)
+                }
             }
-            return true
-        }
+        )
     }
 
     private func selectionRow(
