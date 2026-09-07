@@ -10,6 +10,7 @@ struct ListelloReorderFramesKey: PreferenceKey {
 
 struct ListelloReorderHandle: View {
     let coordinateSpace: String
+    let accessibilityIdentifier: String
     let isDragging: Bool
     let onChanged: (CGPoint) -> Void
     let onEnded: () -> Void
@@ -28,6 +29,7 @@ struct ListelloReorderHandle: View {
             )
             .accessibilityLabel("Reorder")
             .accessibilityHint("Drag up or down to change the order")
+            .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 

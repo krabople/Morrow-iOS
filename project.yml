@@ -60,6 +60,7 @@ targets:
     scheme:
       testTargets:
         - ListelloTests
+        - ListelloUITests
   ListelloTests:
     type: bundle.unit-test
     platform: iOS
@@ -70,3 +71,14 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.krabople.listello.tests
+  ListelloUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - ListelloUITests
+    dependencies:
+      - target: Listello
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.krabople.listello.ui-tests
+

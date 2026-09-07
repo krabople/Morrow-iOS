@@ -41,7 +41,15 @@ final class TaskStore: ObservableObject {
             self.storageURL = newURL
         }
 
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--listello-reordering-ui-test") {
+            seedReorderingUITestData()
+        } else {
+            load()
+        }
+        #else
         load()
+        #endif
         normalizePreferences()
         normalizeSortIndices()
         normalizeProjectSortIndices()
@@ -747,6 +755,52 @@ final class TaskStore: ObservableObject {
         preferences = state.preferences
     }
 
+    #if DEBUG
+    private func seedReorderingUITestData() {
+        tasks = [
+            TaskItem(
+                id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                title: "First task",
+                sortIndex: 0
+            ),
+            TaskItem(
+                id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
+                title: "Second task",
+                sortIndex: 1
+            ),
+            TaskItem(
+                id: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
+                title: "Third task",
+                sortIndex: 2
+            )
+        ]
+        projects = [
+            ProjectItem(
+                id: UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!,
+                name: "Alpha project",
+                color: .teal,
+                sortIndex: 0
+            ),
+            ProjectItem(
+                id: UUID(uuidString: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB")!,
+                name: "Beta project",
+                color: .sky,
+                sortIndex: 1
+            ),
+            ProjectItem(
+                id: UUID(uuidString: "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC")!,
+                name: "Gamma project",
+                color: .amber,
+                sortIndex: 2
+            )
+        ]
+        scheduleBreaks = []
+        notificationDayKeys = []
+        preferences = ListelloPreferences()
+        persist()
+    }
+    #endif
+
     private func normalizePreferences() {
         let cleaned = Array(Set(preferences.durationOptions.filter { (1...1_440).contains($0) })).sorted()
         preferences.durationOptions = cleaned.isEmpty
@@ -865,3 +919,4 @@ final class TaskStore: ObservableObject {
         return dates
     }
 }
+

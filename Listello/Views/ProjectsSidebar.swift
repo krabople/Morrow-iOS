@@ -174,6 +174,7 @@ struct ProjectsSidebar: View {
 
             ListelloReorderHandle(
                 coordinateSpace: projectReorderSpace,
+                accessibilityIdentifier: "project-reorder-\(project.id.uuidString)",
                 isDragging: draggedProjectID == project.id,
                 onChanged: { reorderProject(project.id, at: $0) },
                 onEnded: finishProjectReorder

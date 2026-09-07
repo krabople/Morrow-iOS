@@ -83,6 +83,7 @@ struct TaskRow: View {
             if let reorderCoordinateSpace, let onReorderChanged, let onReorderEnded {
                 ListelloReorderHandle(
                     coordinateSpace: reorderCoordinateSpace,
+                    accessibilityIdentifier: "task-reorder-\(task.id.uuidString)",
                     isDragging: isBeingReordered,
                     onChanged: onReorderChanged,
                     onEnded: onReorderEnded
