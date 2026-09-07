@@ -13,6 +13,9 @@ struct RemindersImportView: View {
     @State private var isImporting = false
     @State private var accessDenied = false
     @State private var importedCount: Int?
+    @State private var pendingSelections: [ReminderSourceList] = []
+    @State private var importDestinations: [String: ReminderImportDestination] = [:]
+    @State private var importConflict: ReminderImportConflict?
 
     var body: some View {
         List {
@@ -56,7 +59,7 @@ struct RemindersImportView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Import") { Task { await importSelectedLists() } }
+                Button("Import", action: startImport)
                     .fontWeight(.semibold)
                     .disabled(selectedCount == 0 || isImporting)
             }
@@ -86,6 +89,27 @@ struct RemindersImportView: View {
             Button("Done") { dismiss() }
         } message: {
             Text(L10n.format("imported_reminders_summary", importedCount ?? 0, selectedCount))
+        }
+        .confirmationDialog(
+            L10n.format("reminders_name_conflict", importConflict?.sourceList.title ?? ""),
+            isPresented: Binding(
+                get: { importConflict != nil },
+                set: { if !$0 { importConflict = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: importConflict
+        ) { conflict in
+            Button("Import as New") {
+                resolve(conflict, as: .createNew)
+            }
+            ForEach(conflict.matches) { project in
+                Button(L10n.format("merge_into_named_kind", project.name, project.kind.title)) {
+                    resolve(conflict, as: .merge(into: project.id))
+                }
+            }
+            Button("Cancel", role: .cancel) { cancelPendingImport() }
+        } message: { _ in
+            Text("Create another project or list, or add only reminders that are not already in an existing one.")
         }
     }
 
@@ -152,13 +176,76 @@ struct RemindersImportView: View {
         isLoading = false
     }
 
-    private func importSelectedLists() async {
-        let selections = sourceLists.filter { choices[$0.id]?.isSelected == true }
+    private func startImport() {
+        pendingSelections = sourceLists.filter { choices[$0.id]?.isSelected == true }
+        importDestinations = [:]
+        continueImport()
+    }
+
+    private func continueImport() {
+        guard !pendingSelections.isEmpty else { return }
+        if let sourceList = pendingSelections.first(where: {
+            importDestinations[$0.id] == nil && !matchingProjects(for: $0).isEmpty
+        }) {
+            importConflict = ReminderImportConflict(
+                sourceList: sourceList,
+                matches: matchingProjects(for: sourceList)
+            )
+            return
+        }
+
+        let selections = pendingSelections
+        let destinations = importDestinations
+        pendingSelections = []
+        Task { await importSelectedLists(selections, destinations: destinations) }
+    }
+
+    private func resolve(_ conflict: ReminderImportConflict, as destination: ReminderImportDestination) {
+        importDestinations[conflict.sourceList.id] = destination
+        importConflict = nil
+        Task { @MainActor in
+            await Task.yield()
+            continueImport()
+        }
+    }
+
+    private func cancelPendingImport() {
+        pendingSelections = []
+        importDestinations = [:]
+        importConflict = nil
+    }
+
+    private func matchingProjects(for sourceList: ReminderSourceList) -> [ProjectItem] {
+        let sourceName = normalizedName(sourceList.title)
+        return store.orderedProjects.filter { normalizedName($0.name) == sourceName }
+    }
+
+    private func normalizedName(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    }
+
+    private func importSelectedLists(
+        _ selections: [ReminderSourceList],
+        destinations: [String: ReminderImportDestination]
+    ) async {
         guard !selections.isEmpty else { return }
         isImporting = true
         var total = 0
 
         for (offset, sourceList) in selections.enumerated() {
+            let reminders = await remindersService.incompleteReminders(in: sourceList.id)
+            if case let .merge(projectID) = destinations[sourceList.id],
+               let destination = store.project(withID: projectID) {
+                total += store.importReminders(
+                    reminders,
+                    into: destination,
+                    skippingExistingTitles: true
+                )
+                continue
+            }
+
             let kind = choices[sourceList.id]?.kind ?? .list
             let color = ProjectColor.allCases[(store.projects.count + offset) % ProjectColor.allCases.count]
             guard let destination = store.addProject(
@@ -167,7 +254,6 @@ struct RemindersImportView: View {
                 kind: kind,
                 hidesFromAllTasks: kind == .list
             ) else { continue }
-            let reminders = await remindersService.incompleteReminders(in: sourceList.id)
             total += store.importReminders(reminders, into: destination)
         }
 
@@ -184,4 +270,16 @@ struct RemindersImportView: View {
 private struct ImportChoice {
     var isSelected = false
     var kind: ProjectKind = .list
+}
+
+private enum ReminderImportDestination {
+    case createNew
+    case merge(into: UUID)
+}
+
+private struct ReminderImportConflict: Identifiable {
+    let sourceList: ReminderSourceList
+    let matches: [ProjectItem]
+
+    var id: String { sourceList.id }
 }

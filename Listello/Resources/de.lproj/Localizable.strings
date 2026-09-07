@@ -165,6 +165,10 @@
 "today_at_time" = "Heute, %@";
 "tomorrow_at_time" = "Morgen, %@";
 "use_time" = "%@ verwenden";
+"reminders_name_conflict" = "Ein Projekt oder eine Liste namens „%@“ ist bereits vorhanden.";
+"merge_into_named_kind" = "Mit %@ (%@) zusammenführen";
+"Import as New" = "Als neu importieren";
+"Create another project or list, or add only reminders that are not already in an existing one." = "Erstelle ein weiteres Projekt oder eine weitere Liste, oder füge nur noch nicht vorhandene Erinnerungen hinzu.";
 "Add item" = "Element hinzufügen";
 "Add the first item to this list below." = "Füge unten das erste Element zu dieser Liste hinzu.";
 "Allow full Reminders access for Listello in iPhone Settings to import your lists." = "Erlaube Listello in den iPhone-Einstellungen vollen Zugriff auf Erinnerungen, um deine Listen zu importieren.";

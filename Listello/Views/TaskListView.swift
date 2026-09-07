@@ -167,9 +167,9 @@ struct TaskListView: View {
                         Label("Delete", systemImage: "trash")
                     }
                 }
-            }
-            .dropDestination(for: String.self) { identifiers, destination in
-                reorderTasks(identifiers, to: destination)
+                .dropDestination(for: String.self) { identifiers, _ in
+                    reorderTasks(identifiers, relativeTo: task.id)
+                }
             }
         }
         .listStyle(.plain)
@@ -295,18 +295,19 @@ struct TaskListView: View {
         }
     }
 
-    private func reorderTasks(_ identifiers: [String], to destination: Int) {
+    private func reorderTasks(_ identifiers: [String], relativeTo targetID: UUID) -> Bool {
         guard
             mode == .active,
             let value = identifiers.first,
-            let draggedID = UUID(uuidString: value)
-        else { return }
+            let draggedID = UUID(uuidString: value),
+            draggedID != targetID,
+            visibleTasks.contains(where: { $0.id == draggedID })
+        else { return false }
 
-        let currentTasks = visibleTasks
-        guard let source = currentTasks.firstIndex(where: { $0.id == draggedID }) else { return }
         withAnimation(.snappy) {
-            store.moveTasks(IndexSet(integer: source), to: destination, within: currentTasks)
+            store.moveTask(draggedID, relativeTo: targetID, within: visibleTasks)
         }
+        return true
     }
 
 }

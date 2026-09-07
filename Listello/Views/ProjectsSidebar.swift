@@ -56,9 +56,6 @@ struct ProjectsSidebar: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
-                .dropDestination(for: String.self) { identifiers, destination in
-                    reorderProjects(identifiers, to: destination)
-                }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -187,7 +184,10 @@ struct ProjectsSidebar: View {
             if selectedProjectID == project.id {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .stroke(project.color.tint.opacity(0.45), lineWidth: 1)
-            }
+                }
+        }
+        .dropDestination(for: String.self) { identifiers, _ in
+            reorderProjects(identifiers, relativeTo: project.id)
         }
     }
 
@@ -255,17 +255,18 @@ struct ProjectsSidebar: View {
         withAnimation(.snappy) { isPresented = false }
     }
 
-    private func reorderProjects(_ identifiers: [String], to destination: Int) {
+    private func reorderProjects(_ identifiers: [String], relativeTo targetID: UUID) -> Bool {
         guard
             let value = identifiers.first,
-            let draggedID = UUID(uuidString: value)
-        else { return }
+            let draggedID = UUID(uuidString: value),
+            draggedID != targetID,
+            store.orderedProjects.contains(where: { $0.id == draggedID })
+        else { return false }
 
-        let currentProjects = store.orderedProjects
-        guard let source = currentProjects.firstIndex(where: { $0.id == draggedID }) else { return }
         withAnimation(.snappy) {
-            store.moveProjects(IndexSet(integer: source), to: destination)
+            store.moveProject(draggedID, relativeTo: targetID)
         }
+        return true
     }
 
 }

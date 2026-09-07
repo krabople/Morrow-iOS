@@ -165,6 +165,10 @@
 "today_at_time" = "आज, %@";
 "tomorrow_at_time" = "कल, %@";
 "use_time" = "%@ उपयोग करें";
+"reminders_name_conflict" = "“%@” नाम का प्रोजेक्ट या लिस्ट पहले से मौजूद है।";
+"merge_into_named_kind" = "%@ (%@) में मर्ज करें";
+"Import as New" = "नए के रूप में इंपोर्ट करें";
+"Create another project or list, or add only reminders that are not already in an existing one." = "दूसरा प्रोजेक्ट या लिस्ट बनाएँ, या केवल वे रिमाइंडर जोड़ें जो पहले से मौजूद नहीं हैं।";
 "Add item" = "आइटम जोड़ें";
 "Add the first item to this list below." = "नीचे इस सूची में पहला आइटम जोड़ें।";
 "Allow full Reminders access for Listello in iPhone Settings to import your lists." = "अपनी सूचियाँ इंपोर्ट करने के लिए iPhone सेटिंग्स में Listello को रिमाइंडर का पूरा ऐक्सेस दें।";

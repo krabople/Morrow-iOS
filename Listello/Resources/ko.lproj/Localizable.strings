@@ -165,6 +165,10 @@
 "today_at_time" = "오늘 %@";
 "tomorrow_at_time" = "내일 %@";
 "use_time" = "%@ 사용";
+"reminders_name_conflict" = "“%@”이라는 프로젝트 또는 목록이 이미 있습니다.";
+"merge_into_named_kind" = "%@(%@)에 병합";
+"Import as New" = "새 항목으로 가져오기";
+"Create another project or list, or add only reminders that are not already in an existing one." = "다른 프로젝트나 목록을 만들거나, 아직 없는 미리 알림만 추가합니다.";
 "Add item" = "항목 추가";
 "Add the first item to this list below." = "아래에서 이 목록에 첫 번째 항목을 추가하세요.";
 "Allow full Reminders access for Listello in iPhone Settings to import your lists." = "목록을 가져오려면 iPhone 설정에서 Listello의 미리 알림 전체 접근을 허용하세요.";

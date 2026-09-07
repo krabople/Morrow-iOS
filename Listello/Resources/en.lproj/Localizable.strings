@@ -234,3 +234,7 @@
 "today_at_time" = "Today, %@";
 "tomorrow_at_time" = "Tomorrow, %@";
 "use_time" = "Use %@";
+"reminders_name_conflict" = "A project or list named “%@” already exists.";
+"merge_into_named_kind" = "Merge into %@ (%@)";
+"Import as New" = "Import as New";
+"Create another project or list, or add only reminders that are not already in an existing one." = "Create another project or list, or add only reminders that are not already in an existing one.";

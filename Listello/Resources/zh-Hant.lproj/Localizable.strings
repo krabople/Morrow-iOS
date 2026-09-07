@@ -165,6 +165,10 @@
 "today_at_time" = "今天，%@";
 "tomorrow_at_time" = "明天，%@";
 "use_time" = "使用%@";
+"reminders_name_conflict" = "名為「%@」的專案或列表已存在。";
+"merge_into_named_kind" = "合併到 %@（%@）";
+"Import as New" = "作為新項目輸入";
+"Create another project or list, or add only reminders that are not already in an existing one." = "建立另一個專案或列表，或只加入現有項目中尚未包含的提醒事項。";
 "Add item" = "加入項目";
 "Add the first item to this list below." = "在下方為此列表加入第一個項目。";
 "Allow full Reminders access for Listello in iPhone Settings to import your lists." = "請在 iPhone「設定」中允許 Listello 完整取用「提醒事項」，以輸入你的列表。";

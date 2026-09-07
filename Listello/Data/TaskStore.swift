@@ -367,12 +367,22 @@ final class TaskStore: ObservableObject {
     }
 
     @discardableResult
-    func importReminders(_ reminders: [ImportedReminder], into project: ProjectItem) -> Int {
+    func importReminders(
+        _ reminders: [ImportedReminder],
+        into project: ProjectItem,
+        skippingExistingTitles: Bool = false
+    ) -> Int {
         guard projects.contains(where: { $0.id == project.id }) else { return 0 }
         var importedCount = 0
+        var existingTitles = skippingExistingTitles
+            ? Set(tasks.lazy.filter { $0.projectID == project.id }.map { normalizedTitle($0.title) })
+            : []
+
         for reminder in reminders {
             let cleanTitle = reminder.title.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !cleanTitle.isEmpty else { continue }
+            let titleKey = normalizedTitle(cleanTitle)
+            guard !skippingExistingTitles || !existingTitles.contains(titleKey) else { continue }
             tasks.append(TaskItem(
                 title: cleanTitle,
                 notes: reminder.notes,
@@ -382,6 +392,7 @@ final class TaskStore: ObservableObject {
                 projectID: project.id,
                 sortIndex: nextSortIndex
             ))
+            existingTitles.insert(titleKey)
             importedCount += 1
         }
         persist()
@@ -652,6 +663,12 @@ final class TaskStore: ObservableObject {
         return projects.first(where: { $0.id == projectID })?.hidesFromAllTasks == true
     }
 
+    private func normalizedTitle(_ title: String) -> String {
+        title
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    }
+
     private func moved<Element>(_ values: [Element], from source: IndexSet, to destination: Int) -> [Element] {
         guard !source.isEmpty else { return values }
         let moving = source.map { values[$0] }
@@ -919,4 +936,3 @@ final class TaskStore: ObservableObject {
         return dates
     }
 }
-

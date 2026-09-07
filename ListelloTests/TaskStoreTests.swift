@@ -143,6 +143,27 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertNil(imported?.expectedDurationMinutes)
     }
 
+    func testMergingRemindersAddsOnlyNewTitles() {
+        let store = makeStore()
+        let project = store.addProject(name: "Shopping", color: .mint)!
+        store.addTask(title: "Milk", projectID: project.id)
+
+        let reminders = [
+            ImportedReminder(title: " milk ", notes: "Duplicate", dueDate: nil, isImportant: false),
+            ImportedReminder(title: "Bread", notes: "Fresh", dueDate: nil, isImportant: false),
+            ImportedReminder(title: "BREAD", notes: "Duplicate in source", dueDate: nil, isImportant: false)
+        ]
+
+        XCTAssertEqual(
+            store.importReminders(reminders, into: project, skippingExistingTitles: true),
+            1
+        )
+        XCTAssertEqual(
+            store.filteredTasks(mode: .active, query: "", projectID: project.id).map(\.title),
+            ["Milk", "Bread"]
+        )
+    }
+
     func testLegacyProjectsRemainVisibleProjects() throws {
         let id = UUID()
         let data = Data("""
@@ -378,7 +399,7 @@ final class LocalizationTests: XCTestCase {
             "add_to_list", "add_to_project", "archived_on", "calendar_name", "delete_project_named",
             "duration_minutes", "imported_reminders_summary", "items_in_list", "keep_time",
             "one_item_in_list", "one_open_task_in_project", "open_tasks_in_project",
-            "remove_duration", "schedule_conflict_message",
+            "merge_into_named_kind", "reminders_name_conflict", "remove_duration", "schedule_conflict_message",
             "to_time", "today_at_time", "tomorrow_at_time", "use_time"
         ]
 
@@ -414,4 +435,3 @@ final class LocalizationTests: XCTestCase {
             + value.components(separatedBy: "%d").count - 1
     }
 }
-
