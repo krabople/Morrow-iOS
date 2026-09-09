@@ -17,18 +17,21 @@ struct RootView: View {
             TaskListView()
                 .tabItem {
                     Label("List", systemImage: "checklist.checked")
+                        .accessibilityIdentifier("screenshots-tab-list")
                 }
                 .tag(ListelloTab.list)
 
             ScheduleView()
                 .tabItem {
                     Label("Schedule", systemImage: "calendar")
+                        .accessibilityIdentifier("screenshots-tab-schedule")
                 }
                 .tag(ListelloTab.schedule)
 
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
+                        .accessibilityIdentifier("screenshots-tab-settings")
                 }
                 .tag(ListelloTab.settings)
         }
