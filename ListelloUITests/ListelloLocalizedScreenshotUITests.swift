@@ -14,8 +14,8 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
             "-AppleLanguages", "(\(language))",
             "-AppleLocale", locale
         ]
-        app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
+        app.launch()
     }
 
     func testCaptureLocalizedIPadScreens() {
@@ -27,7 +27,7 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         capture("03-Projects-and-lists")
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.5)).tap()
 
-        let task = app.descendants(matching: .any)["screenshots-task-33333333-3333-3333-3333-333333333333"].firstMatch
+        let task = app.staticTexts["screenshots-task-33333333-3333-3333-3333-333333333333"].firstMatch
         if task.waitForExistence(timeout: 2) {
             task.tap()
         } else {
