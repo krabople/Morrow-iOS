@@ -51,7 +51,7 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         capture("07-Random-pick")
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.30, dy: 0.18)).tap()
 
-        app.buttons["screenshots-tab-schedule"].tap()
+        app.buttons["screenshots-tab-schedule"].firstMatch.tap()
         pause()
         capture("01-Build-your-day")
         let addSchedule = app.buttons["screenshots-add-schedule"]
@@ -61,7 +61,7 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         pause()
         capture("02-Handle-clashes")
 
-        app.buttons["screenshots-tab-settings"].tap()
+        app.buttons["screenshots-tab-settings"].firstMatch.tap()
         pause()
         capture("06-Make-it-yours")
     }
