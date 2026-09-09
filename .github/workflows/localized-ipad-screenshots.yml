@@ -2,15 +2,9 @@ name: Capture localized iPad screenshots
 
 on:
   workflow_dispatch:
-    inputs:
-      language:
-        description: App language code
-        required: true
-        default: de
-      locale:
-        description: Apple locale
-        required: true
-        default: de_DE
+  push:
+    paths:
+      - .github/workflows/localized-ipad-screenshots.yml
 
 permissions:
   contents: read
@@ -19,6 +13,29 @@ jobs:
   capture:
     runs-on: macos-26
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { language: ar, locale: ar_SA }
+          - { language: de, locale: de_DE }
+          - { language: es, locale: es_ES }
+          - { language: fr, locale: fr_FR }
+          - { language: hi, locale: hi_IN }
+          - { language: id, locale: id_ID }
+          - { language: it, locale: it_IT }
+          - { language: ja, locale: ja_JP }
+          - { language: ko, locale: ko_KR }
+          - { language: nl, locale: nl_NL }
+          - { language: pl, locale: pl_PL }
+          - { language: pt-BR, locale: pt_BR }
+          - { language: ru, locale: ru_RU }
+          - { language: th, locale: th_TH }
+          - { language: tr, locale: tr_TR }
+          - { language: uk, locale: uk_UA }
+          - { language: vi, locale: vi_VN }
+          - { language: zh-Hans, locale: zh_CN }
+          - { language: zh-Hant, locale: zh_TW }
     steps:
       - uses: actions/checkout@v7
       - run: brew install xcodegen
@@ -33,8 +50,8 @@ jobs:
         id: screenshots
         continue-on-error: true
         env:
-          LISTELLO_SCREENSHOT_LANGUAGE: ${{ inputs.language }}
-          LISTELLO_SCREENSHOT_LOCALE: ${{ inputs.locale }}
+          LISTELLO_SCREENSHOT_LANGUAGE: ${{ matrix.language }}
+          LISTELLO_SCREENSHOT_LOCALE: ${{ matrix.locale }}
         run: |
           set -uo pipefail
           xcodebuild test \
@@ -53,9 +70,10 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: localized-ipad-${{ inputs.language }}
+          name: localized-ipad-${{ matrix.language }}
           path: captured
           retention-days: 7
       - name: Fail if capture test failed
         if: steps.screenshots.outcome != 'success'
         run: exit 1
+
