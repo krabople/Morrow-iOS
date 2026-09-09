@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         include:
           - { language: ar, locale: ar_SA }
@@ -54,18 +55,29 @@ jobs:
           LISTELLO_SCREENSHOT_LOCALE: ${{ matrix.locale }}
         run: |
           set -uo pipefail
-          xcodebuild test \
-            -project Listello.xcodeproj \
-            -scheme Listello \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
-            -only-testing:ListelloUITests/ListelloLocalizedScreenshotUITests \
-            -resultBundlePath LocalizedScreenshots.xcresult \
-            CODE_SIGNING_ALLOWED=NO
-          TEST_STATUS=$?
+          TEST_STATUS=1
+          for ATTEMPT in 1 2; do
+            rm -rf LocalizedScreenshots.xcresult
+            xcrun simctl shutdown "$SIMULATOR_ID" 2>/dev/null || true
+            xcrun simctl boot "$SIMULATOR_ID"
+            xcrun simctl bootstatus "$SIMULATOR_ID" -b
+            xcodebuild test \
+              -project Listello.xcodeproj \
+              -scheme Listello \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+              -only-testing:ListelloUITests/ListelloLocalizedScreenshotUITests \
+              -resultBundlePath LocalizedScreenshots.xcresult \
+              CODE_SIGNING_ALLOWED=NO
+            TEST_STATUS=$?
+            if [ "$TEST_STATUS" -eq 0 ]; then break; fi
+            echo "Capture attempt $ATTEMPT failed; restarting the simulator before retrying."
+          done
           set -e
           mkdir -p captured
-          xcrun xcresulttool export attachments --path LocalizedScreenshots.xcresult --output-path captured
+          if [ -d LocalizedScreenshots.xcresult ]; then
+            xcrun xcresulttool export attachments --path LocalizedScreenshots.xcresult --output-path captured
+          fi
           exit "$TEST_STATUS"
       - uses: actions/upload-artifact@v6
         if: always()
