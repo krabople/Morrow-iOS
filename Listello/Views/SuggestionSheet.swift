@@ -35,6 +35,7 @@ struct SuggestionSheet: View {
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal)
+                            .accessibilityIdentifier("screenshots-random-title")
 
                         if !task.notes.isEmpty {
                             VStack(alignment: .leading, spacing: 7) {
@@ -107,3 +108,4 @@ struct SuggestionSheet: View {
         L10n.duration(minutes)
     }
 }
+

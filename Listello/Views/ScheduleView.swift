@@ -76,6 +76,7 @@ struct ScheduleView: View {
                         } label: {
                             Label("Add scheduled task", systemImage: "checkmark.circle")
                         }
+                        .accessibilityIdentifier("screenshots-add-scheduled-task")
                         Button {
                             newBreak = ScheduleBreakItem(
                                 startDate: store.suggestedScheduleTime(on: selectedDay),
@@ -241,6 +242,18 @@ struct ScheduleView: View {
     }
 
     private func createScheduledTask() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--listello-screenshot-ui-test") {
+            let start = Calendar.current.date(byAdding: .minute, value: 615, to: selectedDay)!
+            newTask = TaskItem(
+                title: L10n.text("sample_website"),
+                scheduledAt: start,
+                expectedDurationMinutes: store.preferences.defaultDurationMinutes,
+                notifiesAtScheduledTime: false
+            )
+            return
+        }
+        #endif
         newTask = TaskItem(
             title: "",
             scheduledAt: store.suggestedScheduleTime(on: selectedDay),
@@ -794,3 +807,4 @@ private struct CalendarEntryRow: View {
         entry.calendarTitle
     }
 }
+

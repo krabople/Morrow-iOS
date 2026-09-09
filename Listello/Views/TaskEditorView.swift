@@ -28,6 +28,7 @@ struct TaskEditorView: View {
                 Section {
                     TextField(editorItemName, text: $draft.title)
                         .font(.headline)
+                        .accessibilityIdentifier("screenshots-task-title")
 
                     TextField("Notes (optional)", text: $draft.notes, axis: .vertical)
                         .lineLimit(2...5)
@@ -128,6 +129,7 @@ struct TaskEditorView: View {
                     Button("Save") { checkAndSave() }
                         .fontWeight(.semibold)
                         .disabled(isSaving || draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("screenshots-save-task")
                 }
             }
             .confirmationDialog("This time overlaps", isPresented: conflictPresented, titleVisibility: .visible) {
@@ -332,3 +334,4 @@ struct TaskEditorView: View {
         }
     }
 }
+

@@ -47,6 +47,7 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         let random = app.buttons["screenshots-random"]
         XCTAssertTrue(random.waitForExistence(timeout: 5))
         random.tap()
+        XCTAssertTrue(app.staticTexts["screenshots-random-title"].waitForExistence(timeout: 5))
         pause()
         capture("07-Random-pick")
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.30, dy: 0.18)).tap()
@@ -57,7 +58,12 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         let addSchedule = app.buttons["screenshots-add-schedule"]
         XCTAssertTrue(addSchedule.waitForExistence(timeout: 5))
         addSchedule.tap()
-        app.buttons.element(boundBy: 0).tap()
+        let addTask = app.buttons["screenshots-add-scheduled-task"]
+        XCTAssertTrue(addTask.waitForExistence(timeout: 5))
+        addTask.tap()
+        let saveTask = app.buttons["screenshots-save-task"]
+        XCTAssertTrue(saveTask.waitForExistence(timeout: 5))
+        saveTask.tap()
         pause()
         capture("02-Handle-clashes")
 
@@ -75,3 +81,4 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         add(attachment)
     }
 }
+
