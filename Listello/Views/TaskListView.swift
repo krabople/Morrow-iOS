@@ -13,6 +13,13 @@ struct TaskListView: View {
     @State private var suggestion: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
 
+    init() {
+        let screenshotList = ProcessInfo.processInfo.arguments.contains("--listello-screenshot-ui-test")
+            ? UUID(uuidString: "DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD")
+            : nil
+        _selectedProjectID = State(initialValue: screenshotList)
+    }
+
     private var selectedProject: ProjectItem? {
         store.project(withID: selectedProjectID)
     }
@@ -63,6 +70,7 @@ struct TaskListView: View {
                         Image(systemName: "line.3.horizontal")
                     }
                     .accessibilityLabel("Open projects")
+                    .accessibilityIdentifier("screenshots-open-projects")
                     .listelloTutorialTarget(.projectsAndLists)
                 }
 
@@ -92,6 +100,7 @@ struct TaskListView: View {
                         Image(systemName: "arrow.up.arrow.down.circle")
                     }
                     .accessibilityLabel("Sort")
+                    .accessibilityIdentifier("screenshots-sort")
                     .listelloTutorialTarget(.sort)
 
                     if mode == .active, !visibleTasks.isEmpty {
@@ -101,6 +110,7 @@ struct TaskListView: View {
                             Image(systemName: "dice.fill")
                         }
                         .accessibilityLabel("Random pick")
+                        .accessibilityIdentifier("screenshots-random")
                     }
                 }
             }
@@ -165,6 +175,7 @@ struct TaskListView: View {
                 .onTapGesture {
                     editingTask = task
                 }
+                .accessibilityIdentifier("screenshots-task-\(task.id.uuidString)")
                 .moveDisabled(!canManuallyReorder)
                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 .listRowSeparator(.hidden)

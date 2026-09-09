@@ -246,3 +246,21 @@
 "New Break" = "新建休息";
 "Schedule view" = "日程视图";
 "Timeline view" = "时间线视图";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "要带的东西";
+"sample_website" = "网站";
+"sample_home_improvements" = "房屋改造";
+"sample_tent_for_steve" = "给 Steve 的帐篷";
+"sample_amp_for_chris" = "给 Chris 的音箱";
+"sample_mic" = "麦克风";
+"sample_earplugs" = "耳塞";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad 支架";
+"sample_tyre_pump" = "轮胎充气泵";
+"sample_fans" = "风扇";
+"sample_shave" = "刮胡子";
+"sample_washing" = "洗衣服";
+"sample_presentation_brief" = "演示文稿概要";
+"sample_hair_appointment" = "理发预约";

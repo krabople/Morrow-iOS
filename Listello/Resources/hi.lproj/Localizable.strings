@@ -246,3 +246,21 @@
 "New Break" = "नया ब्रेक";
 "Schedule view" = "शेड्यूल दृश्य";
 "Timeline view" = "समयरेखा दृश्य";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "साथ ले जाने की चीज़ें";
+"sample_website" = "वेबसाइट";
+"sample_home_improvements" = "घर में सुधार";
+"sample_tent_for_steve" = "स्टीव के लिए टेंट";
+"sample_amp_for_chris" = "क्रिस के लिए एम्प्लीफ़ायर";
+"sample_mic" = "माइक्रोफ़ोन";
+"sample_earplugs" = "ईयरप्लग";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad होल्डर";
+"sample_tyre_pump" = "टायर पंप";
+"sample_fans" = "पंखे";
+"sample_shave" = "शेव करना";
+"sample_washing" = "कपड़े धोना";
+"sample_presentation_brief" = "प्रस्तुति का सार";
+"sample_hair_appointment" = "हेयर अपॉइंटमेंट";

@@ -246,3 +246,21 @@
 "New Break" = "새 휴식";
 "Schedule view" = "일정 보기";
 "Timeline view" = "타임라인 보기";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "가져갈 물건";
+"sample_website" = "웹사이트";
+"sample_home_improvements" = "집 수리";
+"sample_tent_for_steve" = "Steve의 텐트";
+"sample_amp_for_chris" = "Chris의 앰프";
+"sample_mic" = "마이크";
+"sample_earplugs" = "귀마개";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad 거치대";
+"sample_tyre_pump" = "타이어 펌프";
+"sample_fans" = "선풍기";
+"sample_shave" = "면도하기";
+"sample_washing" = "빨래하기";
+"sample_presentation_brief" = "프레젠테이션 개요";
+"sample_hair_appointment" = "미용실 예약";

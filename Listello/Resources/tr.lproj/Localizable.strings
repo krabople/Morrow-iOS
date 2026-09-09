@@ -246,3 +246,21 @@
 "New Break" = "Yeni Mola";
 "Schedule view" = "Program görünümü";
 "Timeline view" = "Zaman çizelgesi görünümü";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "Yanına alınacaklar";
+"sample_website" = "Web sitesi";
+"sample_home_improvements" = "Ev tadilatı";
+"sample_tent_for_steve" = "Steve için çadır";
+"sample_amp_for_chris" = "Chris için amfi";
+"sample_mic" = "Mikrofon";
+"sample_earplugs" = "Kulak tıkacı";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad tutucu";
+"sample_tyre_pump" = "Lastik pompası";
+"sample_fans" = "Vantilatörler";
+"sample_shave" = "Tıraş ol";
+"sample_washing" = "Çamaşır yıka";
+"sample_presentation_brief" = "Sunum özeti";
+"sample_hair_appointment" = "Kuaför randevusu";

@@ -246,3 +246,21 @@
 "New Break" = "ช่วงพักใหม่";
 "Schedule view" = "มุมมองตาราง";
 "Timeline view" = "มุมมองไทม์ไลน์";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "ของที่ต้องนำไป";
+"sample_website" = "เว็บไซต์";
+"sample_home_improvements" = "ปรับปรุงบ้าน";
+"sample_tent_for_steve" = "เต็นท์สำหรับ Steve";
+"sample_amp_for_chris" = "แอมป์สำหรับ Chris";
+"sample_mic" = "ไมโครโฟน";
+"sample_earplugs" = "ที่อุดหู";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "ที่วาง iPad";
+"sample_tyre_pump" = "ที่สูบยาง";
+"sample_fans" = "พัดลม";
+"sample_shave" = "โกนหนวด";
+"sample_washing" = "ซักผ้า";
+"sample_presentation_brief" = "สรุปงานนำเสนอ";
+"sample_hair_appointment" = "นัดทำผม";

@@ -246,3 +246,21 @@
 "New Break" = "استراحة جديدة";
 "Schedule view" = "عرض الجدول";
 "Timeline view" = "عرض المخطط الزمني";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "أشياء لأخذها";
+"sample_website" = "الموقع الإلكتروني";
+"sample_home_improvements" = "تحسينات المنزل";
+"sample_tent_for_steve" = "خيمة لستيف";
+"sample_amp_for_chris" = "مضخم صوت لكريس";
+"sample_mic" = "ميكروفون";
+"sample_earplugs" = "سدادات أذن";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "حامل iPad";
+"sample_tyre_pump" = "مضخة إطارات";
+"sample_fans" = "مراوح";
+"sample_shave" = "الحلاقة";
+"sample_washing" = "غسل الملابس";
+"sample_presentation_brief" = "ملخص العرض التقديمي";
+"sample_hair_appointment" = "موعد تصفيف الشعر";

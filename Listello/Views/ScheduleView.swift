@@ -88,6 +88,7 @@ struct ScheduleView: View {
                         Image(systemName: "plus.circle.fill")
                     }
                     .accessibilityLabel("Add to schedule")
+                    .accessibilityIdentifier("screenshots-add-schedule")
                     .listelloTutorialTarget(.scheduleAdd)
                 }
             }

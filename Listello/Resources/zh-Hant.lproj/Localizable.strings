@@ -246,3 +246,21 @@
 "New Break" = "新增休息";
 "Schedule view" = "排程顯示方式";
 "Timeline view" = "時間軸顯示方式";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "要帶的東西";
+"sample_website" = "網站";
+"sample_home_improvements" = "居家改善";
+"sample_tent_for_steve" = "給 Steve 的帳篷";
+"sample_amp_for_chris" = "給 Chris 的音箱";
+"sample_mic" = "麥克風";
+"sample_earplugs" = "耳塞";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad 支架";
+"sample_tyre_pump" = "輪胎打氣筒";
+"sample_fans" = "風扇";
+"sample_shave" = "刮鬍子";
+"sample_washing" = "洗衣服";
+"sample_presentation_brief" = "簡報概要";
+"sample_hair_appointment" = "美髮預約";

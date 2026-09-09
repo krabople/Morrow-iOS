@@ -246,3 +246,21 @@
 "New Break" = "新規休憩";
 "Schedule view" = "スケジュール表示";
 "Timeline view" = "タイムライン表示";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "持っていく物";
+"sample_website" = "ウェブサイト";
+"sample_home_improvements" = "家の修繕";
+"sample_tent_for_steve" = "Steveのテント";
+"sample_amp_for_chris" = "Chrisのアンプ";
+"sample_mic" = "マイク";
+"sample_earplugs" = "耳栓";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPadホルダー";
+"sample_tyre_pump" = "タイヤポンプ";
+"sample_fans" = "扇風機";
+"sample_shave" = "ひげをそる";
+"sample_washing" = "洗濯";
+"sample_presentation_brief" = "プレゼン概要";
+"sample_hair_appointment" = "美容院の予約";

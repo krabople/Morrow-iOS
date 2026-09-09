@@ -75,7 +75,9 @@ final class TaskStore: ObservableObject {
         }
 
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--listello-reordering-ui-test") {
+        if ProcessInfo.processInfo.arguments.contains("--listello-screenshot-ui-test") {
+            seedScreenshotUITestData()
+        } else if ProcessInfo.processInfo.arguments.contains("--listello-reordering-ui-test") {
             seedReorderingUITestData()
         } else {
             load()
@@ -1154,6 +1156,36 @@ final class TaskStore: ObservableObject {
     }
 
     #if DEBUG
+    private func seedScreenshotUITestData() {
+        let listID = UUID(uuidString: "DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD")!
+        projects = [
+            ProjectItem(id: listID, name: L10n.text("sample_stuff_to_take"), color: .amber, kind: .list, sortIndex: 0),
+            ProjectItem(name: L10n.text("sample_website"), color: .teal, sortIndex: 1),
+            ProjectItem(name: L10n.text("sample_home_improvements"), color: .sky, sortIndex: 2)
+        ]
+        let itemKeys = [
+            "sample_tent_for_steve", "sample_amp_for_chris", "sample_mic", "sample_earplugs",
+            "sample_ipad_mini", "sample_ipad_holder", "sample_tyre_pump", "sample_fans", "sample_shave"
+        ]
+        tasks = itemKeys.enumerated().map { index, key in
+            let id = index == 2
+                ? UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+                : UUID()
+            return TaskItem(id: id, title: L10n.text(key), expectedDurationMinutes: nil, projectID: listID, sortIndex: index)
+        }
+        let start = Calendar.current.startOfDay(for: Date())
+        let washing = Calendar.current.date(byAdding: .hour, value: 10, to: start)!
+        let presentation = Calendar.current.date(byAdding: .hour, value: 11, to: start)!
+        let hair = Calendar.current.date(byAdding: .hour, value: 12, to: start)!
+        tasks.append(TaskItem(title: L10n.text("sample_washing"), scheduledAt: washing, expectedDurationMinutes: 30, sortIndex: 20))
+        tasks.append(TaskItem(title: L10n.text("sample_presentation_brief"), scheduledAt: presentation, expectedDurationMinutes: 30, sortIndex: 21))
+        tasks.append(TaskItem(title: L10n.text("sample_hair_appointment"), scheduledAt: hair, expectedDurationMinutes: 30, sortIndex: 22))
+        scheduleBreaks = [ScheduleBreakItem(startDate: Calendar.current.date(byAdding: .minute, value: 690, to: start)!, durationMinutes: 15)]
+        notificationDayKeys = []
+        preferences = ListelloPreferences()
+        persist()
+    }
+
     private func seedReorderingUITestData() {
         tasks = [
             TaskItem(

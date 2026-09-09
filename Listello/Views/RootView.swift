@@ -57,7 +57,7 @@ struct RootView: View {
         if arguments.contains("--listello-tutorial-ui-test") {
             hasCompletedTutorial = false
             startTutorial()
-        } else if arguments.contains("--listello-reordering-ui-test") {
+        } else if arguments.contains("--listello-reordering-ui-test") || arguments.contains("--listello-screenshot-ui-test") {
             // Keep the tutorial out of this test's later persistence relaunch too.
             hasCompletedTutorial = true
         } else if !hasCompletedTutorial {

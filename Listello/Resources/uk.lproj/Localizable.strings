@@ -246,3 +246,21 @@
 "New Break" = "Нова перерва";
 "Schedule view" = "Вигляд розкладу";
 "Timeline view" = "Вигляд часової шкали";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "Речі, які треба взяти";
+"sample_website" = "Вебсайт";
+"sample_home_improvements" = "Ремонт оселі";
+"sample_tent_for_steve" = "Намет для Стіва";
+"sample_amp_for_chris" = "Підсилювач для Кріса";
+"sample_mic" = "Мікрофон";
+"sample_earplugs" = "Беруші";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "Тримач для iPad";
+"sample_tyre_pump" = "Насос для шин";
+"sample_fans" = "Вентилятори";
+"sample_shave" = "Поголитися";
+"sample_washing" = "Випрати речі";
+"sample_presentation_brief" = "План презентації";
+"sample_hair_appointment" = "Запис до перукаря";

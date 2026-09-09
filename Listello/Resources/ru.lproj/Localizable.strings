@@ -246,3 +246,21 @@
 "New Break" = "Новый перерыв";
 "Schedule view" = "Вид расписания";
 "Timeline view" = "Временная шкала";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "Что взять с собой";
+"sample_website" = "Веб-сайт";
+"sample_home_improvements" = "Ремонт дома";
+"sample_tent_for_steve" = "Палатка для Стива";
+"sample_amp_for_chris" = "Усилитель для Криса";
+"sample_mic" = "Микрофон";
+"sample_earplugs" = "Беруши";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "Держатель для iPad";
+"sample_tyre_pump" = "Насос для шин";
+"sample_fans" = "Вентиляторы";
+"sample_shave" = "Побриться";
+"sample_washing" = "Постирать вещи";
+"sample_presentation_brief" = "План презентации";
+"sample_hair_appointment" = "Запись в парикмахерскую";

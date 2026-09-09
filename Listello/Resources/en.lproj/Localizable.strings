@@ -247,3 +247,21 @@
 "merge_into_named_kind" = "Merge into %@ (%@)";
 "Import as New" = "Import as New";
 "Create another project or list, or add only reminders that are not already in an existing one." = "Create another project or list, or add only reminders that are not already in an existing one.";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "Stuff to take";
+"sample_website" = "Website";
+"sample_home_improvements" = "Home improvements";
+"sample_tent_for_steve" = "Tent for Steve";
+"sample_amp_for_chris" = "Amp for Chris";
+"sample_mic" = "Mic";
+"sample_earplugs" = "Earplugs";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad holder";
+"sample_tyre_pump" = "Tyre pump";
+"sample_fans" = "Fans";
+"sample_shave" = "Shave";
+"sample_washing" = "Washing";
+"sample_presentation_brief" = "Presentation brief";
+"sample_hair_appointment" = "Hair appointment";

@@ -246,3 +246,21 @@
 "New Break" = "Neue Pause";
 "Schedule view" = "Zeitplanansicht";
 "Timeline view" = "Zeitleistenansicht";
+
+
+/* Screenshot sample content */
+"sample_stuff_to_take" = "Sachen zum Mitnehmen";
+"sample_website" = "Website";
+"sample_home_improvements" = "Hausrenovierung";
+"sample_tent_for_steve" = "Zelt für Steve";
+"sample_amp_for_chris" = "Verstärker für Chris";
+"sample_mic" = "Mikrofon";
+"sample_earplugs" = "Ohrstöpsel";
+"sample_ipad_mini" = "iPad mini";
+"sample_ipad_holder" = "iPad-Halterung";
+"sample_tyre_pump" = "Reifenpumpe";
+"sample_fans" = "Ventilatoren";
+"sample_shave" = "Rasieren";
+"sample_washing" = "Wäsche waschen";
+"sample_presentation_brief" = "Präsentationsentwurf";
+"sample_hair_appointment" = "Friseurtermin";
