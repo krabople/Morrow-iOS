@@ -2,11 +2,6 @@ name: Capture localized iPad screenshots
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/localized-ipad-screenshots.yml
-      - Listello/**
-      - ListelloUITests/ListelloLocalizedScreenshotUITests.swift
 
 permissions:
   contents: read
@@ -21,6 +16,24 @@ jobs:
       matrix:
         include:
           - { language: ar, locale: ar_SA }
+          - { language: de, locale: de_DE }
+          - { language: es, locale: es_ES }
+          - { language: fr, locale: fr_FR }
+          - { language: hi, locale: hi_IN }
+          - { language: id, locale: id_ID }
+          - { language: it, locale: it_IT }
+          - { language: ja, locale: ja_JP }
+          - { language: ko, locale: ko_KR }
+          - { language: nl, locale: nl_NL }
+          - { language: pl, locale: pl_PL }
+          - { language: pt-BR, locale: pt_BR }
+          - { language: ru, locale: ru_RU }
+          - { language: th, locale: th_TH }
+          - { language: tr, locale: tr_TR }
+          - { language: uk, locale: uk_UA }
+          - { language: vi, locale: vi_VN }
+          - { language: zh-Hans, locale: zh_CN }
+          - { language: zh-Hant, locale: zh_TW }
     steps:
       - uses: actions/checkout@v7
       - name: Configure screenshot language
