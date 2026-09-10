@@ -18,7 +18,7 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         app.launch()
     }
 
-    func testCaptureLocalizedIPadScreens() {
+    func testCaptureCoreLocalizedIPadScreens() {
         let projects = app.buttons["screenshots-open-projects"]
         XCTAssertTrue(projects.waitForExistence(timeout: 8))
 
@@ -45,16 +45,20 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         capture("04-Flexible-details")
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.31, dy: 0.18)).tap()
 
-        let sort = app.buttons["screenshots-sort"]
-        XCTAssertTrue(sort.waitForExistence(timeout: 5))
-        sort.tap()
-        pause()
-        capture("05-Sort-your-way")
-        sort.tap()
-
         app.buttons["screenshots-tab-schedule"].firstMatch.tap()
         pause()
         capture("01-Build-your-day")
+
+        app.buttons["screenshots-tab-settings"].firstMatch.tap()
+        pause()
+        capture("06-Make-it-yours")
+    }
+
+    func testCaptureConflictScreen() {
+        let scheduleTab = app.buttons["screenshots-tab-schedule"].firstMatch
+        XCTAssertTrue(scheduleTab.waitForExistence(timeout: 8))
+        scheduleTab.tap()
+        pause()
         let addSchedule = app.buttons["screenshots-add-schedule"]
         XCTAssertTrue(addSchedule.waitForExistence(timeout: 5))
         addSchedule.tap()
@@ -66,10 +70,14 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         saveTask.tap()
         pause()
         capture("02-Handle-clashes")
+    }
 
-        app.buttons["screenshots-tab-settings"].firstMatch.tap()
+    func testCaptureSortScreen() {
+        let sort = app.buttons["screenshots-sort"]
+        XCTAssertTrue(sort.waitForExistence(timeout: 8))
+        sort.tap()
         pause()
-        capture("06-Make-it-yours")
+        capture("05-Sort-your-way")
     }
 
     private func pause() { RunLoop.current.run(until: Date().addingTimeInterval(1.2)) }
