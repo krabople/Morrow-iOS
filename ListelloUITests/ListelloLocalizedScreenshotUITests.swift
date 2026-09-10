@@ -2,6 +2,7 @@ import XCTest
 
 final class ListelloLocalizedScreenshotUITests: XCTestCase {
     private var app: XCUIApplication!
+    private var usesRightToLeftLayout = false
 
     override func setUp() {
         super.setUp()
@@ -12,6 +13,7 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         // into the simulator-hosted UI test process.
         let language = "__SCREENSHOT_LANGUAGE__"
         let locale = "__SCREENSHOT_LOCALE__"
+        usesRightToLeftLayout = ["ar"].contains(language)
         app.launchArguments = [
             "--listello-screenshot-ui-test",
             "-AppleLanguages", "(\(language))",
@@ -36,7 +38,8 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         projects.tap()
         pause()
         capture("03-Projects-and-lists")
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.5)).tap()
+        let sidebarDismissX: CGFloat = usesRightToLeftLayout ? 0.18 : 0.82
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: sidebarDismissX, dy: 0.5)).tap()
 
         let task = app.staticTexts["screenshots-task-33333333-3333-3333-3333-333333333333"].firstMatch
         if task.waitForExistence(timeout: 2) {
