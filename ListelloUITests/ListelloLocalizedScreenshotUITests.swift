@@ -22,6 +22,14 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         let projects = app.buttons["screenshots-open-projects"]
         XCTAssertTrue(projects.waitForExistence(timeout: 8))
 
+        let random = app.buttons["screenshots-random"]
+        XCTAssertTrue(random.waitForExistence(timeout: 5))
+        random.tap()
+        XCTAssertTrue(app.staticTexts["screenshots-random-title"].waitForExistence(timeout: 5))
+        pause()
+        capture("07-Random-pick")
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.30, dy: 0.18)).tap()
+
         projects.tap()
         pause()
         capture("03-Projects-and-lists")
@@ -43,14 +51,6 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         pause()
         capture("05-Sort-your-way")
         sort.tap()
-
-        let random = app.buttons["screenshots-random"]
-        XCTAssertTrue(random.waitForExistence(timeout: 5))
-        random.tap()
-        XCTAssertTrue(app.staticTexts["screenshots-random-title"].waitForExistence(timeout: 5))
-        pause()
-        capture("07-Random-pick")
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.30, dy: 0.18)).tap()
 
         app.buttons["screenshots-tab-schedule"].firstMatch.tap()
         pause()
