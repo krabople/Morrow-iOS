@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - .github/workflows/localized-ipad-screenshots.yml
+      - Listello/**
+      - ListelloUITests/ListelloLocalizedScreenshotUITests.swift
 
 permissions:
   contents: read
