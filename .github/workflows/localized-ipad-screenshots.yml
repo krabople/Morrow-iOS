@@ -41,6 +41,12 @@ jobs:
           - { language: zh-Hant, locale: zh_TW }
     steps:
       - uses: actions/checkout@v7
+      - name: Configure screenshot language
+        env:
+          LISTELLO_SCREENSHOT_LANGUAGE: ${{ matrix.language }}
+          LISTELLO_SCREENSHOT_LOCALE: ${{ matrix.locale }}
+        run: |
+          python3 -c 'import os,pathlib; p=pathlib.Path("ListelloUITests/ListelloLocalizedScreenshotUITests.swift"); s=p.read_text(); s=s.replace("__SCREENSHOT_LANGUAGE__", os.environ["LISTELLO_SCREENSHOT_LANGUAGE"]).replace("__SCREENSHOT_LOCALE__", os.environ["LISTELLO_SCREENSHOT_LOCALE"]); p.write_text(s)'
       - run: brew install xcodegen
       - run: swift Support/generate-icon.swift Artwork/ListelloSource.jpg Listello/Resources/Assets.xcassets/AppIcon.appiconset/ListelloIcon-1024.png
       - run: xcodegen generate

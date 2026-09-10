@@ -7,8 +7,11 @@ final class ListelloLocalizedScreenshotUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        let language = ProcessInfo.processInfo.environment["LISTELLO_SCREENSHOT_LANGUAGE"] ?? "de"
-        let locale = ProcessInfo.processInfo.environment["LISTELLO_SCREENSHOT_LOCALE"] ?? "de_DE"
+        // GitHub Actions replaces these placeholders before building the test
+        // bundle. Custom shell environment variables are not reliably forwarded
+        // into the simulator-hosted UI test process.
+        let language = "__SCREENSHOT_LANGUAGE__"
+        let locale = "__SCREENSHOT_LOCALE__"
         app.launchArguments = [
             "--listello-screenshot-ui-test",
             "-AppleLanguages", "(\(language))",
