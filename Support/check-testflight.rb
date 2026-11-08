@@ -9,6 +9,7 @@ KEY_ID = ENV.fetch("APPSTORE_KEY_ID")
 PRIVATE_KEY = ENV.fetch("APPSTORE_PRIVATE_KEY")
 APP_ID = ENV.fetch("APP_STORE_APP_ID")
 BUILD_NUMBER = ENV.fetch("BUILD_NUMBER")
+$stdout.sync = true
 
 def base64url(value)
   Base64.urlsafe_encode64(value).delete("=")
@@ -44,6 +45,21 @@ def fetch_build
   JSON.parse(response.body).fetch("data").first
 end
 
+def fetch_build_upload
+  uri = URI("https://api.appstoreconnect.apple.com/v1/apps/#{APP_ID}/buildUploads")
+  uri.query = URI.encode_www_form(
+    "fields[buildUploads]" => "cfBundleVersion,state,uploadedDate",
+    "limit" => "50"
+  )
+  request = Net::HTTP::Get.new(uri)
+  request["Authorization"] = "Bearer #{token}"
+  response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
+  abort "App Store Connect build uploads returned #{response.code}: #{response.body}" unless response.is_a?(Net::HTTPSuccess)
+  JSON.parse(response.body).fetch("data").find do |upload|
+    upload.dig("attributes", "cfBundleVersion") == BUILD_NUMBER
+  end
+end
+
 20.times do |attempt|
   build = fetch_build
   if build
@@ -53,7 +69,14 @@ end
     exit 0 if state == "VALID"
     abort "Apple rejected build #{BUILD_NUMBER} during processing." if %w[FAILED INVALID].include?(state)
   else
-    puts "Waiting for build #{BUILD_NUMBER} to appear (attempt #{attempt + 1}/20)."
+    upload = fetch_build_upload
+    upload_state = upload&.dig("attributes", "state")
+    if upload_state&.fetch("state", nil) == "FAILED"
+      errors = upload_state.fetch("errors", []).map { |error| "#{error["code"]}: #{error["description"]}" }
+      abort "Apple rejected build #{BUILD_NUMBER} during ingestion:\n#{errors.join("\n")}"
+    end
+    state = upload_state&.fetch("state", nil) || "not visible"
+    puts "Waiting for build #{BUILD_NUMBER} to appear (upload state: #{state}; attempt #{attempt + 1}/20)."
   end
   sleep 60
 end
