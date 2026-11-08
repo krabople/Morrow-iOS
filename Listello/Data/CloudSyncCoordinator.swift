@@ -190,13 +190,14 @@ actor CloudSyncCoordinator {
             await publishStatus(.upToDate)
         }
 
-        notificationTask = Task { [weak self, store] in
+        notificationTask = Task { [weak self] in
+            guard let self else { return }
             for await notification in NotificationCenter.default.notifications(
                 named: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-                object: store
+                object: self.store
             ) {
                 let reason = notification.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
-                await self?.receivedExternalChange(reason: reason)
+                await self.receivedExternalChange(reason: reason)
             }
         }
     }
