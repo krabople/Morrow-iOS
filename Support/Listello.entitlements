@@ -4,14 +4,6 @@
 <dict>
 	<key>aps-environment</key>
 	<string>production</string>
-	<key>com.apple.developer.icloud-container-identifiers</key>
-	<array>
-		<string>iCloud.com.krabople.morrow</string>
-	</array>
-	<key>com.apple.developer.icloud-services</key>
-	<array>
-		<string>CloudKit</string>
-	</array>
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
 	<string>$(TeamIdentifierPrefix)com.krabople.morrow</string>
 </dict>

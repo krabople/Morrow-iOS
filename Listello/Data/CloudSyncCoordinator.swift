@@ -1,4 +1,3 @@
-import CloudKit
 import Foundation
 
 enum CloudSyncStatus: Equatable {
@@ -38,53 +37,22 @@ private enum CloudEntityKind: String, Codable {
     case notificationDays
 }
 
-private struct CloudTrackedRecord: Codable {
+private struct CloudTrackedRecord: Codable, Equatable {
     var kind: CloudEntityKind
     var payload: Data
     var userModificationDate: Date
-    var lastKnownRecordData: Data?
-
-    var lastKnownRecord: CKRecord? {
-        get {
-            guard let lastKnownRecordData else { return nil }
-            do {
-                let unarchiver = try NSKeyedUnarchiver(forReadingFrom: lastKnownRecordData)
-                unarchiver.requiresSecureCoding = true
-                return CKRecord(coder: unarchiver)
-            } catch {
-                return nil
-            }
-        }
-        set {
-            guard let newValue else {
-                lastKnownRecordData = nil
-                return
-            }
-            let archiver = NSKeyedArchiver(requiringSecureCoding: true)
-            newValue.encodeSystemFields(with: archiver)
-            lastKnownRecordData = archiver.encodedData
-        }
-    }
-
-    mutating func remember(_ record: CKRecord) {
-        if let localDate = lastKnownRecord?.modificationDate,
-           let remoteDate = record.modificationDate,
-           localDate >= remoteDate {
-            return
-        }
-        lastKnownRecord = record
-    }
-
-    func populate(_ record: CKRecord) {
-        record.encryptedValues["kind"] = kind.rawValue
-        record.encryptedValues["payload"] = payload
-        record.encryptedValues["userModificationDate"] = userModificationDate
-    }
+    var isDeleted: Bool
 }
 
 private struct CloudSyncMetadata: Codable {
     var records: [String: CloudTrackedRecord] = [:]
-    var stateSerialization: CKSyncEngine.State.Serialization?
+    var lastSeenRevision: UUID?
+}
+
+private struct CloudEnvelope: Codable {
+    let schemaVersion: Int
+    let revision: UUID
+    let records: [String: CloudTrackedRecord]
 }
 
 private struct CloudPayload {
@@ -92,141 +60,235 @@ private struct CloudPayload {
     let data: Data
 }
 
+/// Synchronises Listello's portable state through the user's private iCloud
+/// key-value store. Calendar event identifiers deliberately remain local to
+/// each device. Record-level timestamps and tombstones keep independent edits
+/// and deletions deterministic when devices reconnect after being offline.
 actor CloudSyncCoordinator {
-    static let containerIdentifier = "iCloud.com.krabople.morrow"
-    static let zoneName = "Listello"
-    static let recordType = "ListelloEntity"
-
-    private static let container = CKContainer(identifier: containerIdentifier)
+    static let cloudKey = "Listello.Sync.Envelope.v1"
+    static let maximumPayloadBytes = 900_000
 
     private let metadataURL: URL
+    private let store: NSUbiquitousKeyValueStore
     private let onStateChange: @MainActor (ListelloState) -> Void
     private let onStatusChange: @MainActor (CloudSyncStatus) -> Void
     private let initialUserModificationDate: Date
     private var metadata: CloudSyncMetadata
     private var baseState: ListelloState
-    private var syncEngine: CKSyncEngine?
     private var didCaptureInitialState = false
-    private var hasFetchedChangesToApply = false
+    private var notificationTask: Task<Void, Never>?
 
     init(
         metadataURL: URL,
         initialState: ListelloState,
         initialUserModificationDate: Date,
+        store: NSUbiquitousKeyValueStore = .default,
         onStateChange: @escaping @MainActor (ListelloState) -> Void,
         onStatusChange: @escaping @MainActor (CloudSyncStatus) -> Void
     ) {
         self.metadataURL = metadataURL
         self.baseState = initialState
         self.initialUserModificationDate = initialUserModificationDate
+        self.store = store
         self.onStateChange = onStateChange
         self.onStatusChange = onStatusChange
         if let data = try? Data(contentsOf: metadataURL),
            let saved = try? JSONDecoder().decode(CloudSyncMetadata.self, from: data) {
-            self.metadata = saved
+            metadata = saved
         } else {
-            self.metadata = CloudSyncMetadata()
+            metadata = CloudSyncMetadata()
         }
 
         Task { await start() }
     }
 
+    deinit {
+        notificationTask?.cancel()
+    }
+
     func capture(_ state: ListelloState) async {
         baseState = state
-        guard let syncEngine else { return }
-
         let payloads = makePayloads(from: state)
         let isFirstCapture = !didCaptureInitialState
         didCaptureInitialState = true
 
-        // A brand-new installation should download an existing iCloud library before
-        // uploading default settings that could overwrite the person's real choices.
+        // A new installation first downloads any existing library instead of
+        // uploading default preferences over the person's real settings.
         if isFirstCapture, metadata.records.isEmpty, !hasUserContent(state) {
             return
         }
 
-        var pendingChanges: [CKSyncEngine.PendingRecordZoneChange] = []
         let now = isFirstCapture ? initialUserModificationDate : Date()
+        var changed = false
 
         for (recordName, payload) in payloads {
-            if let existing = metadata.records[recordName], existing.payload == payload.data {
+            if let existing = metadata.records[recordName],
+               !existing.isDeleted,
+               existing.kind == payload.kind,
+               existing.payload == payload.data {
                 continue
             }
-
-            var tracked = metadata.records[recordName] ?? CloudTrackedRecord(
+            metadata.records[recordName] = CloudTrackedRecord(
                 kind: payload.kind,
                 payload: payload.data,
                 userModificationDate: now,
-                lastKnownRecordData: nil
+                isDeleted: false
             )
-            tracked.kind = payload.kind
-            tracked.payload = payload.data
-            tracked.userModificationDate = now
-            metadata.records[recordName] = tracked
-            pendingChanges.append(.saveRecord(recordID(for: recordName)))
+            changed = true
         }
 
-        let removedNames = Set(metadata.records.keys).subtracting(Set(payloads.keys))
-        for recordName in removedNames {
-            metadata.records[recordName] = nil
-            pendingChanges.append(.deleteRecord(recordID(for: recordName)))
+        let liveNames = Set(payloads.keys)
+        for (recordName, existing) in metadata.records where !existing.isDeleted && !liveNames.contains(recordName) {
+            metadata.records[recordName] = CloudTrackedRecord(
+                kind: existing.kind,
+                payload: Data(),
+                userModificationDate: now,
+                isDeleted: true
+            )
+            changed = true
         }
 
-        guard !pendingChanges.isEmpty else { return }
+        guard changed else { return }
         persistMetadata()
-        syncEngine.state.add(pendingRecordZoneChanges: pendingChanges)
-        await publishStatus(.syncing)
+        await writeSnapshot()
     }
 
     func syncNow() async {
-        guard let syncEngine else { return }
+        guard FileManager.default.ubiquityIdentityToken != nil else {
+            await publishStatus(.notSignedIn)
+            return
+        }
         await publishStatus(.syncing)
-        do {
-            try await syncEngine.fetchChanges()
-            try await syncEngine.sendChanges()
-            await publishStatus(.upToDate)
-        } catch let error as CKError where Self.isTemporary(error.code) {
+        guard store.synchronize() else {
             await publishStatus(.offline)
-        } catch {
-            await publishStatus(.unavailable)
+            return
+        }
+        let localWon = await mergeRemoteSnapshot()
+        if localWon {
+            await writeSnapshot()
+        } else {
+            await publishStatus(.upToDate)
         }
     }
 
     private func start() async {
         await publishStatus(.starting)
-        var configuration = CKSyncEngine.Configuration(
-            database: Self.container.privateCloudDatabase,
-            stateSerialization: metadata.stateSerialization,
-            delegate: self
-        )
-        configuration.automaticallySync = true
-        let engine = CKSyncEngine(configuration)
-        syncEngine = engine
-        engine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
+        guard FileManager.default.ubiquityIdentityToken != nil else {
+            await publishStatus(.notSignedIn)
+            return
+        }
 
-        await capture(baseState)
+        if metadata.records.isEmpty, hasUserContent(baseState) {
+            seedMetadata(from: baseState, date: initialUserModificationDate)
+        }
 
-        do {
-            let status = try await Self.container.accountStatus()
-            guard status == .available else {
-                await publishStatus(.notSignedIn)
-                return
-            }
-            try await engine.fetchChanges()
+        _ = store.synchronize()
+        let localWon = await mergeRemoteSnapshot()
+        if localWon || store.data(forKey: Self.cloudKey) == nil {
+            await writeSnapshot()
+        } else {
             await publishStatus(.upToDate)
-        } catch let error as CKError where Self.isTemporary(error.code) {
-            await publishStatus(.offline)
-        } catch {
-            await publishStatus(.unavailable)
+        }
+
+        notificationTask = Task { [weak self, store] in
+            for await notification in NotificationCenter.default.notifications(
+                named: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+                object: store
+            ) {
+                let reason = notification.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
+                await self?.receivedExternalChange(reason: reason)
+            }
         }
     }
 
-    private var zoneID: CKRecordZone.ID {
-        CKRecordZone.ID(zoneName: Self.zoneName, ownerName: CKCurrentUserDefaultName)
+    private func receivedExternalChange(reason: Int?) async {
+        if reason == NSUbiquitousKeyValueStoreQuotaViolationChange {
+            await publishStatus(.unavailable)
+            return
+        }
+        await publishStatus(.syncing)
+        let localWon = await mergeRemoteSnapshot()
+        if localWon {
+            await writeSnapshot()
+        } else {
+            await publishStatus(.upToDate)
+        }
     }
 
-    private func recordID(for recordName: String) -> CKRecord.ID {
-        CKRecord.ID(recordName: recordName, zoneID: zoneID)
+    /// Returns true when the local merged library contains records newer than
+    /// the downloaded envelope and should be written back to iCloud.
+    private func mergeRemoteSnapshot() async -> Bool {
+        guard let data = store.data(forKey: Self.cloudKey),
+              let remote = try? JSONDecoder().decode(CloudEnvelope.self, from: data),
+              remote.schemaVersion == 1
+        else { return !metadata.records.isEmpty }
+
+        if metadata.lastSeenRevision == remote.revision {
+            return false
+        }
+
+        var changedLocally = false
+        var localWon = false
+        let names = Set(metadata.records.keys).union(remote.records.keys)
+        for name in names {
+            switch (metadata.records[name], remote.records[name]) {
+            case (.none, .some(let remoteRecord)):
+                metadata.records[name] = remoteRecord
+                changedLocally = true
+            case (.some, .none):
+                localWon = true
+            case (.some(let localRecord), .some(let remoteRecord)):
+                if remoteRecord.userModificationDate > localRecord.userModificationDate {
+                    metadata.records[name] = remoteRecord
+                    changedLocally = true
+                } else if localRecord.userModificationDate > remoteRecord.userModificationDate {
+                    localWon = true
+                } else if localRecord != remoteRecord {
+                    // A stable bytewise tie-break handles the extremely rare
+                    // case where two devices save during the same clock tick.
+                    if remoteRecord.payload.lexicographicallyPrecedes(localRecord.payload) {
+                        localWon = true
+                    } else {
+                        metadata.records[name] = remoteRecord
+                        changedLocally = true
+                    }
+                }
+            case (.none, .none):
+                break
+            }
+        }
+
+        metadata.lastSeenRevision = remote.revision
+        persistMetadata()
+        if changedLocally {
+            await emitMergedState()
+        }
+        return localWon
+    }
+
+    private func writeSnapshot() async {
+        let revision = UUID()
+        let envelope = CloudEnvelope(schemaVersion: 1, revision: revision, records: metadata.records)
+        guard let data = try? JSONEncoder().encode(envelope), data.count <= Self.maximumPayloadBytes else {
+            await publishStatus(.unavailable)
+            return
+        }
+        metadata.lastSeenRevision = revision
+        persistMetadata()
+        store.set(data, forKey: Self.cloudKey)
+        await publishStatus(store.synchronize() ? .upToDate : .offline)
+    }
+
+    private func seedMetadata(from state: ListelloState, date: Date) {
+        for (name, payload) in makePayloads(from: state) {
+            metadata.records[name] = CloudTrackedRecord(
+                kind: payload.kind,
+                payload: payload.data,
+                userModificationDate: date,
+                isDeleted: false
+            )
+        }
+        persistMetadata()
     }
 
     private func makePayloads(from state: ListelloState) -> [String: CloudPayload] {
@@ -235,8 +297,6 @@ actor CloudSyncCoordinator {
         var payloads: [String: CloudPayload] = [:]
 
         for var task in state.tasks {
-            // EventKit identifiers are device-local. The task itself syncs; each device
-            // keeps its own link to any calendar event it exported.
             task.calendarEventIdentifier = nil
             if let data = try? encoder.encode(task) {
                 payloads["task-\(task.id.uuidString)"] = CloudPayload(kind: .task, data: data)
@@ -273,7 +333,7 @@ actor CloudSyncCoordinator {
         var preferences = baseState.preferences
         var notificationDayKeys = baseState.notificationDayKeys
 
-        for tracked in metadata.records.values {
+        for tracked in metadata.records.values where !tracked.isDeleted {
             switch tracked.kind {
             case .task:
                 if let value = try? decoder.decode(TaskItem.self, from: tracked.payload) { tasks.append(value) }
@@ -297,46 +357,6 @@ actor CloudSyncCoordinator {
         )
     }
 
-    private func applyFetchedRecord(_ record: CKRecord) {
-        guard
-            let kindRaw = record.encryptedValues["kind"] as? String,
-            let kind = CloudEntityKind(rawValue: kindRaw),
-            let payload = record.encryptedValues["payload"] as? Data
-        else { return }
-
-        let remoteDate = record.encryptedValues["userModificationDate"] as? Date ?? .distantPast
-        let name = record.recordID.recordName
-
-        if var local = metadata.records[name] {
-            if remoteDate > local.userModificationDate {
-                local.kind = kind
-                local.payload = payload
-                local.userModificationDate = remoteDate
-            } else if remoteDate < local.userModificationDate {
-                syncEngine?.state.add(pendingRecordZoneChanges: [.saveRecord(record.recordID)])
-            }
-            local.remember(record)
-            metadata.records[name] = local
-        } else {
-            var tracked = CloudTrackedRecord(
-                kind: kind,
-                payload: payload,
-                userModificationDate: remoteDate,
-                lastKnownRecordData: nil
-            )
-            tracked.remember(record)
-            metadata.records[name] = tracked
-        }
-    }
-
-    private func applyFetchedDeletion(_ recordID: CKRecord.ID) {
-        metadata.records[recordID.recordName] = nil
-        syncEngine?.state.remove(pendingRecordZoneChanges: [
-            .saveRecord(recordID),
-            .deleteRecord(recordID)
-        ])
-    }
-
     private func emitMergedState() async {
         let state = mergedState()
         baseState = state
@@ -350,139 +370,5 @@ actor CloudSyncCoordinator {
 
     private func publishStatus(_ status: CloudSyncStatus) async {
         await onStatusChange(status)
-    }
-
-    private static func isTemporary(_ code: CKError.Code) -> Bool {
-        switch code {
-        case .networkFailure, .networkUnavailable, .serviceUnavailable, .requestRateLimited,
-             .zoneBusy, .accountTemporarilyUnavailable, .notAuthenticated:
-            true
-        default:
-            false
-        }
-    }
-}
-
-extension CloudSyncCoordinator: CKSyncEngineDelegate {
-    func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
-        switch event {
-        case .stateUpdate(let event):
-            metadata.stateSerialization = event.stateSerialization
-            persistMetadata()
-
-        case .accountChange(let event):
-            switch event.changeType {
-            case .signIn, .switchAccounts:
-                for key in metadata.records.keys {
-                    metadata.records[key]?.lastKnownRecordData = nil
-                }
-                syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
-                syncEngine.state.add(pendingRecordZoneChanges: metadata.records.keys.map { .saveRecord(recordID(for: $0)) })
-                await publishStatus(.syncing)
-            case .signOut:
-                await publishStatus(.notSignedIn)
-            @unknown default:
-                await publishStatus(.unavailable)
-            }
-
-        case .fetchedDatabaseChanges(let event):
-            if event.deletions.contains(where: { $0.zoneID == zoneID }) {
-                metadata.records.removeAll()
-                hasFetchedChangesToApply = true
-            }
-
-        case .fetchedRecordZoneChanges(let event):
-            for modification in event.modifications {
-                applyFetchedRecord(modification.record)
-            }
-            for deletion in event.deletions {
-                applyFetchedDeletion(deletion.recordID)
-            }
-            if !event.modifications.isEmpty || !event.deletions.isEmpty {
-                persistMetadata()
-                hasFetchedChangesToApply = true
-            }
-
-        case .sentRecordZoneChanges(let event):
-            var retries: [CKSyncEngine.PendingRecordZoneChange] = []
-            var databaseRetries: [CKSyncEngine.PendingDatabaseChange] = []
-
-            for record in event.savedRecords {
-                if var tracked = metadata.records[record.recordID.recordName] {
-                    tracked.remember(record)
-                    metadata.records[record.recordID.recordName] = tracked
-                }
-            }
-
-            for failure in event.failedRecordSaves {
-                let record = failure.record
-                switch failure.error.code {
-                case .serverRecordChanged:
-                    if let serverRecord = failure.error.serverRecord {
-                        applyFetchedRecord(serverRecord)
-                        retries.append(.saveRecord(record.recordID))
-                        hasFetchedChangesToApply = true
-                    }
-                case .zoneNotFound:
-                    metadata.records[record.recordID.recordName]?.lastKnownRecordData = nil
-                    databaseRetries.append(.saveZone(CKRecordZone(zoneID: record.recordID.zoneID)))
-                    retries.append(.saveRecord(record.recordID))
-                case .unknownItem:
-                    metadata.records[record.recordID.recordName]?.lastKnownRecordData = nil
-                    retries.append(.saveRecord(record.recordID))
-                case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-                     .notAuthenticated, .operationCancelled, .requestRateLimited,
-                     .accountTemporarilyUnavailable:
-                    await publishStatus(.offline)
-                default:
-                    await publishStatus(.unavailable)
-                }
-            }
-
-            syncEngine.state.add(pendingDatabaseChanges: databaseRetries)
-            syncEngine.state.add(pendingRecordZoneChanges: retries)
-            persistMetadata()
-
-        case .willFetchChanges, .willFetchRecordZoneChanges, .willSendChanges:
-            await publishStatus(.syncing)
-
-        case .didFetchChanges:
-            if hasFetchedChangesToApply {
-                hasFetchedChangesToApply = false
-                await emitMergedState()
-            }
-            await publishStatus(.upToDate)
-
-        case .didSendChanges:
-            if hasFetchedChangesToApply {
-                hasFetchedChangesToApply = false
-                await emitMergedState()
-            }
-            await publishStatus(.upToDate)
-
-        case .sentDatabaseChanges, .didFetchRecordZoneChanges:
-            break
-
-        @unknown default:
-            break
-        }
-    }
-
-    func nextRecordZoneChangeBatch(
-        _ context: CKSyncEngine.SendChangesContext,
-        syncEngine: CKSyncEngine
-    ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-        let changes = syncEngine.state.pendingRecordZoneChanges.filter { context.options.scope.contains($0) }
-        let records = metadata.records
-        return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
-            guard let tracked = records[recordID.recordName] else {
-                syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
-                return nil
-            }
-            let record = tracked.lastKnownRecord
-                ?? CKRecord(recordType: Self.recordType, recordID: recordID)
-            tracked.populate(record)
-            return record
-        }
     }
 }
