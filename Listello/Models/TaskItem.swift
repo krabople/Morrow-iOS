@@ -17,6 +17,7 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
     var recurrence: RecurrenceRule
     var recurrenceExceptions: [Date]
     var hiddenUntil: Date?
+    var addedToScheduleAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -34,7 +35,8 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         calendarEventIdentifier: String? = nil,
         recurrence: RecurrenceRule = .none,
         recurrenceExceptions: [Date] = [],
-        hiddenUntil: Date? = nil
+        hiddenUntil: Date? = nil,
+        addedToScheduleAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -52,6 +54,7 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         self.recurrence = recurrence
         self.recurrenceExceptions = recurrenceExceptions
         self.hiddenUntil = hiddenUntil
+        self.addedToScheduleAt = addedToScheduleAt ?? scheduledAt.map { _ in Date() }
     }
 
     var isCompleted: Bool { completedAt != nil }
@@ -63,6 +66,7 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         case id, title, notes, createdAt, scheduledAt, expectedDurationMinutes
         case notifiesAtScheduledTime, isImportant, completedAt, archivedAt, projectID, sortIndex
         case calendarEventIdentifier, recurrence, recurrenceExceptions, hiddenUntil
+        case addedToScheduleAt
     }
 
     init(from decoder: Decoder) throws {
@@ -87,6 +91,8 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         recurrence = try values.decodeIfPresent(RecurrenceRule.self, forKey: .recurrence) ?? .none
         recurrenceExceptions = try values.decodeIfPresent([Date].self, forKey: .recurrenceExceptions) ?? []
         hiddenUntil = try values.decodeIfPresent(Date.self, forKey: .hiddenUntil)
+        addedToScheduleAt = try values.decodeIfPresent(Date.self, forKey: .addedToScheduleAt)
+            ?? scheduledAt.map { _ in createdAt }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -111,6 +117,7 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         try values.encode(recurrence, forKey: .recurrence)
         try values.encode(recurrenceExceptions, forKey: .recurrenceExceptions)
         try values.encodeIfPresent(hiddenUntil, forKey: .hiddenUntil)
+        try values.encodeIfPresent(addedToScheduleAt, forKey: .addedToScheduleAt)
     }
 }
 

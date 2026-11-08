@@ -4,6 +4,11 @@ struct SettingsView: View {
     @EnvironmentObject private var store: TaskStore
     @Environment(\.replayListelloTutorial) private var replayTutorial
     @State private var showsArchiveAllConfirmation = false
+    @State private var showsBackupExporter = false
+    @State private var showsBackupImporter = false
+    @State private var pendingBackup: ListelloBackup?
+    @State private var showsRestoreConfirmation = false
+    @State private var backupErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -32,6 +37,24 @@ struct SettingsView: View {
                                 Label(ListelloTutorialL10n.text("Replay tutorial"), systemImage: "questionmark.circle")
                             }
                             .listelloTutorialTarget(.replay)
+                        }
+
+                        Section {
+                            LabeledContent {
+                                Text(store.cloudSyncStatus.title)
+                                    .foregroundStyle(.secondary)
+                            } label: {
+                                Label("iCloud Sync", systemImage: store.cloudSyncStatus.systemImage)
+                            }
+
+                            Button("Sync Now", systemImage: "arrow.clockwise") {
+                                store.syncNow()
+                            }
+                            .disabled(store.cloudSyncStatus == .syncing || store.cloudSyncStatus == .starting)
+                        } header: {
+                            Text("iCloud Sync")
+                        } footer: {
+                            Text("Tasks, projects and schedules sync privately across devices signed in to the same Apple Account.")
                         }
 
                         Section("Task Defaults") {
@@ -64,6 +87,20 @@ struct SettingsView: View {
                         }
 
                         Section {
+                            Button("Export Full Backup", systemImage: "square.and.arrow.up") {
+                                showsBackupExporter = true
+                            }
+
+                            Button("Restore from Backup", systemImage: "square.and.arrow.down") {
+                                showsBackupImporter = true
+                            }
+                        } header: {
+                            Text("Backup")
+                        } footer: {
+                            Text("A backup includes every task, project, list, schedule, break, archive and preference. Calendar links remain specific to each device.")
+                        }
+
+                        Section {
                             Picker("Move completed tasks", selection: archiveDelayBinding) {
                                 Text("Never").tag(nil as Int?)
                                 Text("Immediately").tag(0 as Int?)
@@ -93,7 +130,7 @@ struct SettingsView: View {
 
                         Section("About") {
                             LabeledContent("Version", value: appVersion)
-                            Label("Tasks stay privately on this device", systemImage: "lock.shield")
+                            Label("Your data stays private on your devices and in your iCloud account", systemImage: "lock.shield")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -113,7 +150,64 @@ struct SettingsView: View {
             } message: {
                 Text("Your List and Done screens will be emptied. You can restore tasks later from the Archive.")
             }
+            .fileExporter(
+                isPresented: $showsBackupExporter,
+                document: ListelloBackupDocument(backup: store.makeBackup()),
+                contentType: .listelloBackup,
+                defaultFilename: backupFilename
+            ) { result in
+                if case .failure(let error) = result {
+                    backupErrorMessage = error.localizedDescription
+                }
+            }
+            .fileImporter(
+                isPresented: $showsBackupImporter,
+                allowedContentTypes: [.listelloBackup, .json],
+                allowsMultipleSelection: false
+            ) { result in
+                do {
+                    let urls = try result.get()
+                    guard let url = urls.first else { throw CocoaError(.fileNoSuchFile) }
+                    let accessed = url.startAccessingSecurityScopedResource()
+                    defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                    pendingBackup = try ListelloBackup(from: Data(contentsOf: url))
+                    showsRestoreConfirmation = true
+                } catch {
+                    backupErrorMessage = error.localizedDescription
+                }
+            }
+            .confirmationDialog(
+                "Replace Listello with this backup?",
+                isPresented: $showsRestoreConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Restore Backup", role: .destructive) {
+                    if let pendingBackup { store.restoreBackup(pendingBackup) }
+                    pendingBackup = nil
+                }
+                Button("Cancel", role: .cancel) { pendingBackup = nil }
+            } message: {
+                if let pendingBackup {
+                    Text(L10n.format(
+                        "backup_restore_summary",
+                        pendingBackup.state.tasks.count,
+                        pendingBackup.state.projects.count
+                    ))
+                }
+            }
+            .alert("Backup Error", isPresented: backupErrorPresented) {
+                Button("OK") { backupErrorMessage = nil }
+            } message: {
+                Text(backupErrorMessage ?? "The backup could not be read.")
+            }
         }
+    }
+
+    private var backupErrorPresented: Binding<Bool> {
+        Binding(
+            get: { backupErrorMessage != nil },
+            set: { if !$0 { backupErrorMessage = nil } }
+        )
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {
@@ -142,6 +236,13 @@ struct SettingsView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.2"
+    }
+
+    private var backupFilename: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "Listello Backup \(formatter.string(from: Date()))"
     }
 
     private func durationLabel(_ minutes: Int) -> String {

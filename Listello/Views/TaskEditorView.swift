@@ -199,7 +199,11 @@ struct TaskEditorView: View {
             get: { draft.scheduledAt != nil },
             set: { enabled in
                 if enabled {
-                    draft.scheduledAt = store.suggestedScheduleTime(on: Date(), excluding: draft.id)
+                    draft.scheduledAt = store.suggestedScheduleTime(
+                        on: Date(),
+                        excluding: draft.id,
+                        durationMinutes: draft.expectedDurationMinutes
+                    )
                     draft.notifiesAtScheduledTime = store.preferences.notifyNewScheduledTasks
                 } else {
                     draft.scheduledAt = nil

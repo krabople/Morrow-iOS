@@ -24,8 +24,10 @@ Listello is a colourful, deliberately simple task and schedule app built nativel
 - Archive, search, restore or permanently delete old tasks
 - Automatically archive completed tasks after a chosen period
 - Use the system appearance, light mode or dark mode
+- Keep tasks, projects, lists and schedules in sync privately between iPhone and iPad with iCloud
+- Export and restore a complete portable Listello backup from Settings
 - Follow the device language across 20 major localisations, including translated permission prompts and right-to-left Arabic
-- Store everything privately on the device
+- Keep data private on the device and in the user's private iCloud database
 
 Scheduling, projects, calendar access and notifications are all optional. There are no accounts, dashboards, habits, points, subscriptions or setup screens.
 

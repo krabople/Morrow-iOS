@@ -42,17 +42,20 @@ final class TaskStore: ObservableObject {
     @Published private(set) var scheduleBreaks: [ScheduleBreakItem] = []
     @Published private(set) var notificationDayKeys: Set<String> = []
     @Published private(set) var preferences = ListelloPreferences()
+    @Published private(set) var cloudSyncStatus: CloudSyncStatus = .starting
 
     private let calendar: Calendar
     private let storageURL: URL
     private let notificationCenter: UNUserNotificationCenter
     private let managesNotifications: Bool
+    private var cloudSyncCoordinator: CloudSyncCoordinator?
 
     init(
         storageURL: URL? = nil,
         calendar: Calendar = .current,
         notificationCenter: UNUserNotificationCenter = .current(),
-        managesNotifications: Bool = true
+        managesNotifications: Bool = true,
+        cloudSyncEnabled: Bool? = nil
     ) {
         self.calendar = calendar
         self.notificationCenter = notificationCenter
@@ -74,6 +77,10 @@ final class TaskStore: ObservableObject {
             self.storageURL = newURL
         }
 
+        let initialUserModificationDate = (
+            try? FileManager.default.attributesOfItem(atPath: self.storageURL.path)[.modificationDate]
+        ) as? Date ?? Date()
+
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--listello-screenshot-ui-test") {
             seedScreenshotUITestData()
@@ -92,6 +99,62 @@ final class TaskStore: ObservableObject {
         if managesNotifications {
             Task { await rebuildNotifications(requestPermission: false) }
         }
+
+        let shouldEnableCloudSync = cloudSyncEnabled ?? (storageURL == nil)
+        #if DEBUG
+        let isUITest = ProcessInfo.processInfo.arguments.contains("--listello-reordering-ui-test")
+        #else
+        let isUITest = false
+        #endif
+        if shouldEnableCloudSync, !isUITest {
+            let metadataURL = self.storageURL.deletingLastPathComponent()
+                .appendingPathComponent("listello-cloud-sync.json")
+            let coordinator = CloudSyncCoordinator(
+                metadataURL: metadataURL,
+                initialState: currentState,
+                initialUserModificationDate: initialUserModificationDate,
+                onStateChange: { [weak self] state in self?.applyCloudState(state) },
+                onStatusChange: { [weak self] status in self?.cloudSyncStatus = status }
+            )
+            cloudSyncCoordinator = coordinator
+        } else {
+            cloudSyncStatus = .unavailable
+        }
+    }
+
+    var currentState: ListelloState {
+        ListelloState(
+            tasks: tasks,
+            projects: projects,
+            scheduleBreaks: scheduleBreaks,
+            notificationDayKeys: notificationDayKeys,
+            preferences: preferences
+        )
+    }
+
+    func syncNow() {
+        guard let cloudSyncCoordinator else { return }
+        Task { await cloudSyncCoordinator.syncNow() }
+    }
+
+    func makeBackup() -> ListelloBackup {
+        var portableTasks = tasks
+        for index in portableTasks.indices {
+            portableTasks[index].calendarEventIdentifier = nil
+        }
+        return ListelloBackup(
+            state: ListelloState(
+                tasks: portableTasks,
+                projects: projects,
+                scheduleBreaks: scheduleBreaks,
+                notificationDayKeys: notificationDayKeys,
+                preferences: preferences
+            )
+        )
+    }
+
+    func restoreBackup(_ backup: ListelloBackup) {
+        applyCloudState(backup.state, preservesCalendarLinks: false)
     }
 
     var activeTasks: [TaskItem] {
@@ -157,14 +220,28 @@ final class TaskStore: ObservableObject {
         cleanTask.notes = task.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         cleanTask.projectID = validProjectID(task.projectID)
         if cleanTask.sortIndex == nil { cleanTask.sortIndex = nextSortIndex }
+        let existingTask = tasks.first(where: { $0.id == cleanTask.id })
         if cleanTask.scheduledAt == nil {
             cleanTask.notifiesAtScheduledTime = false
             cleanTask.recurrence = .none
             cleanTask.recurrenceExceptions = []
             cleanTask.hiddenUntil = nil
+            cleanTask.addedToScheduleAt = nil
         } else if cleanTask.recurrence == .none {
             cleanTask.recurrenceExceptions = []
             cleanTask.hiddenUntil = nil
+        }
+        if cleanTask.scheduledAt != nil {
+            if let existingTask {
+                if existingTask.scheduledAt == nil {
+                    cleanTask.addedToScheduleAt = Date()
+                } else if cleanTask.addedToScheduleAt == nil {
+                    cleanTask.addedToScheduleAt = existingTask.addedToScheduleAt
+                        ?? existingTask.createdAt
+                }
+            } else if cleanTask.addedToScheduleAt == nil {
+                cleanTask.addedToScheduleAt = Date()
+            }
         }
 
         if let index = tasks.firstIndex(where: { $0.id == cleanTask.id }) {
@@ -812,7 +889,12 @@ final class TaskStore: ObservableObject {
         return true
     }
 
-    func suggestedScheduleTime(on day: Date, excluding taskID: UUID? = nil) -> Date {
+    func suggestedScheduleTime(
+        on day: Date,
+        excluding taskID: UUID? = nil,
+        durationMinutes: Int? = nil,
+        calendarEntries: [CalendarEntry] = []
+    ) -> Date {
         let fallback: Date
         if calendar.isDateInToday(day) {
             let nextHour = calendar.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
@@ -824,11 +906,52 @@ final class TaskStore: ObservableObject {
 
         let mostRecentlyAdded = tasks(on: day)
             .filter { $0.id != taskID }
-            .max { $0.createdAt < $1.createdAt }
-        guard let mostRecentlyAdded, let start = mostRecentlyAdded.scheduledAt else { return fallback }
-        let duration = mostRecentlyAdded.expectedDurationMinutes ?? preferences.defaultDurationMinutes
-        let finish = start.addingTimeInterval(TimeInterval(max(1, duration) * 60))
-        return max(finish, fallback)
+            .max { lhs, rhs in
+                (lhs.addedToScheduleAt ?? lhs.createdAt) < (rhs.addedToScheduleAt ?? rhs.createdAt)
+            }
+
+        let anchorFinish: Date
+        if let mostRecentlyAdded, let start = mostRecentlyAdded.scheduledAt {
+            let duration = mostRecentlyAdded.expectedDurationMinutes ?? preferences.defaultDurationMinutes
+            anchorFinish = start.addingTimeInterval(TimeInterval(max(1, duration) * 60))
+        } else {
+            anchorFinish = fallback
+        }
+
+        let proposedStart = max(anchorFinish, fallback)
+        let proposedDuration = TimeInterval(max(1, durationMinutes ?? preferences.defaultDurationMinutes) * 60)
+        var occupied = tasks(on: day).compactMap { task -> OccupiedScheduleSlot? in
+            guard
+                task.id != taskID,
+                let start = task.scheduledAt,
+                let minutes = task.expectedDurationMinutes
+            else { return nil }
+            return OccupiedScheduleSlot(
+                start: start,
+                end: start.addingTimeInterval(TimeInterval(max(1, minutes) * 60))
+            )
+        }
+        occupied.append(contentsOf: breaks(on: day).map {
+            OccupiedScheduleSlot(start: $0.startDate, end: $0.endDate)
+        })
+        occupied.append(contentsOf: calendarEntries.compactMap { entry in
+            guard !entry.isAllDay else { return nil }
+            return OccupiedScheduleSlot(start: entry.startDate, end: entry.endDate)
+        })
+
+        let endOfDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: day)
+            ?? proposedStart.addingTimeInterval(86_400)
+        if let available = earliestAvailableStart(
+            atOrAfter: proposedStart,
+            duration: proposedDuration,
+            occupied: occupied,
+            noLaterThan: endOfDay
+        ) {
+            return available
+        }
+
+        let nextDay = calendar.date(byAdding: .day, value: 1, to: day) ?? day
+        return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: nextDay) ?? nextDay
     }
 
     func setDurationOptions(_ options: [Int]) {
@@ -1267,16 +1390,34 @@ final class TaskStore: ObservableObject {
         if !projects.isEmpty { persist() }
     }
 
-    private func persist() {
-        let state = ListelloState(
-            tasks: tasks,
-            projects: projects,
-            scheduleBreaks: scheduleBreaks,
-            notificationDayKeys: notificationDayKeys,
-            preferences: preferences
-        )
+    private func persist(syncToCloud: Bool = true) {
+        let state = currentState
         guard let data = try? JSONEncoder().encode(state) else { return }
         try? data.write(to: storageURL, options: .atomic)
+        if syncToCloud, let cloudSyncCoordinator {
+            Task { await cloudSyncCoordinator.capture(state) }
+        }
+    }
+
+    private func applyCloudState(_ state: ListelloState, preservesCalendarLinks: Bool = true) {
+        let localCalendarLinks = Dictionary(
+            uniqueKeysWithValues: tasks.compactMap { task in
+                task.calendarEventIdentifier.map { (task.id, $0) }
+            }
+        )
+        tasks = state.tasks.map { incoming in
+            guard preservesCalendarLinks, let identifier = localCalendarLinks[incoming.id] else { return incoming }
+            var task = incoming
+            task.calendarEventIdentifier = identifier
+            return task
+        }
+        projects = state.projects
+        scheduleBreaks = state.scheduleBreaks
+        notificationDayKeys = state.notificationDayKeys
+        preferences = state.preferences
+        normalizePreferences()
+        persist(syncToCloud: !preservesCalendarLinks)
+        rebuildNotificationsSoon()
     }
 
     private func requestNotificationPermission() async -> Bool {

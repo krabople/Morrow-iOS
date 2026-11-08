@@ -393,6 +393,57 @@ final class TaskStoreTests: XCTestCase {
         )
     }
 
+    func testSuggestedScheduleUsesWhenTaskWasScheduledRatherThanCreated() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let nine = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow)!
+        let one = calendar.date(bySettingHour: 13, minute: 0, second: 0, of: tomorrow)!
+        await store.saveTask(TaskItem(
+            title: "Newer task created first",
+            createdAt: Date(timeIntervalSince1970: 200),
+            scheduledAt: nine,
+            expectedDurationMinutes: 30,
+            addedToScheduleAt: Date(timeIntervalSince1970: 100)
+        ))
+        await store.saveTask(TaskItem(
+            title: "Older task scheduled last",
+            createdAt: Date(timeIntervalSince1970: 1),
+            scheduledAt: one,
+            expectedDurationMinutes: 60,
+            addedToScheduleAt: Date(timeIntervalSince1970: 300)
+        ))
+
+        XCTAssertEqual(
+            store.suggestedScheduleTime(on: tomorrow),
+            calendar.date(byAdding: .hour, value: 1, to: one)
+        )
+    }
+
+    func testSuggestedScheduleSkipsClashesWithoutAddingARoundingGap() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let nine = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow)!
+        let nineThirty = calendar.date(byAdding: .minute, value: 30, to: nine)!
+        let tenThirtySeven = calendar.date(bySettingHour: 10, minute: 37, second: 0, of: tomorrow)!
+        await store.saveTask(TaskItem(
+            title: "Blocking task",
+            scheduledAt: nineThirty,
+            expectedDurationMinutes: 67,
+            addedToScheduleAt: Date(timeIntervalSince1970: 100)
+        ))
+        await store.saveTask(TaskItem(
+            title: "Most recently scheduled",
+            scheduledAt: nine,
+            expectedDurationMinutes: 30,
+            addedToScheduleAt: Date(timeIntervalSince1970: 200)
+        ))
+
+        XCTAssertEqual(
+            store.suggestedScheduleTime(on: tomorrow, durationMinutes: 30),
+            tenThirtySeven
+        )
+    }
+
     func testBreaksPersistAndBlockScheduleTime() async {
         var store: TaskStore? = makeStore()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
@@ -532,6 +583,37 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(restored.activeTasks.first?.projectID, restored.projects.first?.id)
     }
 
+    func testFullBackupRoundTripRestoresAllPortableData() async throws {
+        let store = makeStore()
+        let project = try XCTUnwrap(store.addProject(name: "House", color: .mint))
+        var task = try XCTUnwrap(store.addTask(title: "Paint kitchen", projectID: project.id))
+        task.notes = "Buy rollers"
+        task.calendarEventIdentifier = "device-specific-event"
+        await store.saveTask(task)
+
+        let encoded = try store.makeBackup().encoded()
+        let decoded = try ListelloBackup(from: encoded)
+
+        XCTAssertEqual(decoded.formatVersion, ListelloBackup.currentFormatVersion)
+        XCTAssertEqual(decoded.state.tasks.map(\.title), ["Paint kitchen"])
+        XCTAssertEqual(decoded.state.projects.map(\.name), ["House"])
+        XCTAssertEqual(decoded.state.tasks.first?.notes, "Buy rollers")
+        XCTAssertNil(decoded.state.tasks.first?.calendarEventIdentifier)
+
+        let restoredURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("listello-restored-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: restoredURL) }
+        let restored = TaskStore(
+            storageURL: restoredURL,
+            calendar: calendar,
+            managesNotifications: false,
+            cloudSyncEnabled: false
+        )
+        restored.restoreBackup(decoded)
+        XCTAssertEqual(restored.activeTasks.map(\.title), ["Paint kitchen"])
+        XCTAssertEqual(restored.projects.map(\.name), ["House"])
+    }
+
     private func makeStore() -> TaskStore {
         TaskStore(storageURL: storageURL, calendar: calendar, managesNotifications: false)
     }
@@ -587,7 +669,7 @@ final class LocalizationTests: XCTestCase {
             "duration_minutes", "imported_reminders_summary", "items_in_list", "keep_time",
             "one_item_in_list", "one_open_task_in_project", "open_tasks_in_project",
             "merge_into_named_kind", "reminders_name_conflict", "remove_duration", "schedule_conflict_message",
-            "to_time", "today_at_time", "tomorrow_at_time", "use_time"
+            "to_time", "today_at_time", "tomorrow_at_time", "use_time", "backup_restore_summary"
         ]
 
         for locale in completeLocalizations {

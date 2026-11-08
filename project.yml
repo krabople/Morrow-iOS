@@ -44,10 +44,22 @@ targets:
         NSUserNotificationsUsageDescription: Listello sends notifications only for tasks and days you choose.
         NSCalendarsFullAccessUsageDescription: Listello uses calendar access only when you choose to show or export calendar events.
         NSRemindersFullAccessUsageDescription: Listello uses Reminders access only when you choose to import lists.
+        UIBackgroundModes:
+          - remote-notification
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.krabople.listello.backup
+            UTTypeDescription: Listello Backup
+            UTTypeConformsTo:
+              - public.json
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - listellobackup
+              public.mime-type: application/vnd.listello.backup+json
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.krabople.morrow
         PRODUCT_NAME: Listello
+        CODE_SIGN_ENTITLEMENTS: Support/Listello.entitlements
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: Apple Distribution
         PROVISIONING_PROFILE_SPECIFIER: AppStore Morrow Shared GitHub

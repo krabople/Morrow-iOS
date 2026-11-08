@@ -1,8 +1,10 @@
 # Listello Privacy Policy
 
-Last updated: 6 September 2026
+Last updated: 8 November 2026
 
-Listello does not collect, transmit, sell or share personal data. Tasks, projects, preferences and archive data are stored locally on the user's device.
+Listello does not collect, sell or share personal data with the developer or third parties. Tasks, projects, preferences and archive data are stored locally on the user's device and, when iCloud is available, in the user's private CloudKit database so that Listello can sync between their Apple devices. This data is associated with the user's Apple Account, is governed by Apple's iCloud terms, and is not accessible to the developer through Listello.
+
+Users can export a complete portable backup from Listello at any time. The backup is saved or shared only to the location the user chooses. Restoring a backup requires confirmation and replaces the app data on that device before the restored data is synced through the user's private iCloud database.
 
 Calendar access is optional. When a user enables calendar features, Listello reads calendar events only to show them alongside the schedule and writes events only when the user explicitly requests an export. Listello does not send calendar data to the developer or any third party.
 

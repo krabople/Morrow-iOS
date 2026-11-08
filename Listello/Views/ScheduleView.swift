@@ -79,7 +79,11 @@ struct ScheduleView: View {
                         .accessibilityIdentifier("screenshots-add-scheduled-task")
                         Button {
                             newBreak = ScheduleBreakItem(
-                                startDate: store.suggestedScheduleTime(on: selectedDay),
+                                startDate: store.suggestedScheduleTime(
+                                    on: selectedDay,
+                                    durationMinutes: store.preferences.defaultDurationMinutes,
+                                    calendarEntries: showsCalendarEvents ? calendarEntries : []
+                                ),
                                 durationMinutes: store.preferences.defaultDurationMinutes
                             )
                         } label: {
@@ -256,7 +260,11 @@ struct ScheduleView: View {
         #endif
         newTask = TaskItem(
             title: "",
-            scheduledAt: store.suggestedScheduleTime(on: selectedDay),
+            scheduledAt: store.suggestedScheduleTime(
+                on: selectedDay,
+                durationMinutes: store.preferences.defaultDurationMinutes,
+                calendarEntries: showsCalendarEvents ? calendarEntries : []
+            ),
             expectedDurationMinutes: store.preferences.defaultDurationMinutes,
             notifiesAtScheduledTime: store.preferences.notifyNewScheduledTasks
         )
