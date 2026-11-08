@@ -918,7 +918,12 @@ final class TaskStore: ObservableObject {
             anchorFinish = fallback
         }
 
-        let proposedStart = max(anchorFinish, fallback)
+        // A scheduled task is the authoritative anchor, even when its finish time
+        // is earlier today. Advancing it to the next rounded hour was the source
+        // of intermittent gaps and could also land inside another scheduled item.
+        // The availability scan below moves this exact finish only for a real
+        // collision. The fallback is used solely when the day has no anchor task.
+        let proposedStart = mostRecentlyAdded == nil ? fallback : anchorFinish
         let proposedDuration = TimeInterval(max(1, durationMinutes ?? preferences.defaultDurationMinutes) * 60)
         var occupied = tasks(on: day).compactMap { task -> OccupiedScheduleSlot? in
             guard

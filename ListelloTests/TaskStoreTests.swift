@@ -444,6 +444,23 @@ final class TaskStoreTests: XCTestCase {
         )
     }
 
+    func testSuggestedScheduleDoesNotRoundPastAnEarlierFinishToday() async {
+        let store = makeStore()
+        let start = calendar.date(byAdding: .hour, value: -2, to: Date())!
+        let expectedFinish = calendar.date(byAdding: .minute, value: 15, to: start)!
+        await store.saveTask(TaskItem(
+            title: "Earlier task",
+            scheduledAt: start,
+            expectedDurationMinutes: 15,
+            addedToScheduleAt: Date()
+        ))
+
+        XCTAssertEqual(
+            store.suggestedScheduleTime(on: Date(), durationMinutes: 30),
+            expectedFinish
+        )
+    }
+
     func testBreaksPersistAndBlockScheduleTime() async {
         var store: TaskStore? = makeStore()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
