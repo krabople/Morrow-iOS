@@ -16,6 +16,14 @@ targets:
   Listello:
     type: application
     platform: iOS
+    attributes:
+      SystemCapabilities:
+        com.apple.iCloud:
+          enabled: 1
+        com.apple.Push:
+          enabled: 1
+        com.apple.BackgroundModes:
+          enabled: 1
     sources:
       - path: Listello
         excludes:
