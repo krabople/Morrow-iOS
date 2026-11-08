@@ -419,6 +419,17 @@ final class TaskStoreTests: XCTestCase {
         )
     }
 
+    func testNewScheduledTaskIsStampedWhenSaved() async {
+        let store = makeStore()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        let draft = TaskItem(title: "Draft", scheduledAt: tomorrow, expectedDurationMinutes: 30)
+
+        XCTAssertNil(draft.addedToScheduleAt)
+        await store.saveTask(draft)
+
+        XCTAssertNotNil(store.tasks.first?.addedToScheduleAt)
+    }
+
     func testSuggestedScheduleSkipsClashesWithoutAddingARoundingGap() async {
         let store = makeStore()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!

@@ -54,7 +54,10 @@ struct TaskItem: Identifiable, Codable, Equatable, Hashable {
         self.recurrence = recurrence
         self.recurrenceExceptions = recurrenceExceptions
         self.hiddenUntil = hiddenUntil
-        self.addedToScheduleAt = addedToScheduleAt ?? scheduledAt.map { _ in Date() }
+        // TaskStore stamps newly scheduled tasks when they are actually saved.
+        // Stamping here would measure when the editor opened, which can make the
+        // wrong task appear to be the most recently added schedule item.
+        self.addedToScheduleAt = addedToScheduleAt
     }
 
     var isCompleted: Bool { completedAt != nil }
