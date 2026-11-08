@@ -60,6 +60,12 @@ private struct CloudPayload {
     let data: Data
 }
 
+/// Foundation has not declared `NSUbiquitousKeyValueStore` Sendable even
+/// though its public API is thread-safe. Keep the unchecked boundary narrow.
+private struct SendableUbiquitousStore: @unchecked Sendable {
+    let value: NSUbiquitousKeyValueStore
+}
+
 /// Synchronises Listello's portable state through the user's private iCloud
 /// key-value store. Calendar event identifiers deliberately remain local to
 /// each device. Record-level timestamps and tombstones keep independent edits
@@ -190,14 +196,14 @@ actor CloudSyncCoordinator {
             await publishStatus(.upToDate)
         }
 
-        notificationTask = Task { [weak self] in
-            guard let self else { return }
+        let notificationStore = SendableUbiquitousStore(value: store)
+        notificationTask = Task { [weak self, notificationStore] in
             for await notification in NotificationCenter.default.notifications(
                 named: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-                object: self.store
+                object: notificationStore.value
             ) {
                 let reason = notification.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
-                await self.receivedExternalChange(reason: reason)
+                await self?.receivedExternalChange(reason: reason)
             }
         }
     }
