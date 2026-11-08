@@ -1,0 +1,91 @@
+name: Configure Listello Apple signing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: configure-listello-apple-signing
+  cancel-in-progress: true
+
+jobs:
+  configure:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      APP_BUNDLE_ID: com.krabople.morrow
+      TEAM_ID: 6YYA8L76Y8
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Validate Apple credentials
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          for name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD APPSTORE_ISSUER_ID APPSTORE_KEY_ID APPSTORE_PRIVATE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required GitHub Actions secret: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate app icon and Xcode project
+        run: |
+          set -euo pipefail
+          swift Support/generate-icon.swift Artwork/ListelloSource.jpg Listello/Resources/Assets.xcassets/AppIcon.appiconset/ListelloIcon-1024.png
+          xcodegen generate
+
+      - name: Import Apple distribution certificate
+        uses: Apple-Actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.P12_PASSWORD }}
+
+      - name: Install App Store Connect API key
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          KEY_DIR="$RUNNER_TEMP/listello-api-key"
+          mkdir -p "$KEY_DIR"
+          printf '%s' "$APPSTORE_PRIVATE_KEY" > "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
+          chmod 600 "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
+          echo "APPSTORE_KEY_PATH=$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Configure capabilities and verify distribution signing
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project Listello.xcodeproj \
+            -scheme Listello \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath .build/Archives/Listello-Signing-Check.xcarchive \
+            -derivedDataPath .build/DerivedData-Signing-Check \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$APPSTORE_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            | xcbeautify --renderer github-actions
+
+          codesign -d --entitlements :- \
+            .build/Archives/Listello-Signing-Check.xcarchive/Products/Applications/Listello.app
