@@ -59,15 +59,21 @@ jobs:
           p12-file-base64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           p12-password: ${{ secrets.P12_PASSWORD }}
 
-      - name: Install App Store provisioning profile
+      - name: Create and install App Store provisioning profile
         env:
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
+          set -euo pipefail
+          PROFILE_DIR="$RUNNER_TEMP/listello-testflight-profile"
+          mkdir -p "$PROFILE_DIR"
+          security find-certificate -c "Apple Distribution" -p signing_temp.keychain \
+            | openssl x509 -noout -serial \
+            | cut -d= -f2 > "$PROFILE_DIR/certificate-serial"
+
           ruby <<'RUBY'
           require "base64"
-          require "fileutils"
           require "json"
           require "net/http"
           require "openssl"
@@ -85,30 +91,48 @@ jobs:
           parts = OpenSSL::ASN1.decode(sig).value
           token = "#{ut}.#{base64url(parts.map{|x|fixed_width(x.value)}.join)}"
 
-          uri = URI("https://api.appstoreconnect.apple.com/v1/profiles?filter[profileType]=IOS_APP_STORE&include=bundleId&fields[profiles]=name,uuid,profileContent,profileState")
-          req = Net::HTTP::Get.new(uri)
-          req["Authorization"] = "Bearer #{token}"
-          resp = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true){|h|h.request(req)}
-          profiles = JSON.parse(resp.body)["data"]
-          profile = profiles.find{|p| p["attributes"]["name"].include?("Morrow")}
-          abort "No Morrow profile found" unless profile
-
-          puts "Profile: #{profile["attributes"]["name"]} (#{profile["attributes"]["uuid"]})"
-          content = profile.dig("attributes","profileContent")
-          unless content
-            detail_uri = URI("https://api.appstoreconnect.apple.com/v1/profiles/#{profile["id"]}?fields[profiles]=name,uuid,profileContent")
-            dreq = Net::HTTP::Get.new(detail_uri)
-            dreq["Authorization"] = "Bearer #{token}"
-            dresp = Net::HTTP.start(detail_uri.hostname, detail_uri.port, use_ssl: true){|h|h.request(dreq)}
-            content = JSON.parse(dresp.body).dig("data","attributes","profileContent")
+          profile_dir = File.join(ENV.fetch("RUNNER_TEMP"), "listello-testflight-profile")
+          serial = File.read(File.join(profile_dir, "certificate-serial")).strip.upcase
+          certificates_uri = URI("https://api.appstoreconnect.apple.com/v1/certificates?filter%5BcertificateType%5D=DISTRIBUTION&limit=200")
+          certificates_request = Net::HTTP::Get.new(certificates_uri)
+          certificates_request["Authorization"] = "Bearer #{token}"
+          certificates_response = Net::HTTP.start(certificates_uri.hostname, certificates_uri.port, use_ssl: true) { |http| http.request(certificates_request) }
+          abort "Certificate lookup failed (HTTP #{certificates_response.code}): #{certificates_response.body}" unless certificates_response.is_a?(Net::HTTPSuccess)
+          certificate = JSON.parse(certificates_response.body).fetch("data").find do |candidate|
+            candidate.fetch("attributes").fetch("serialNumber").upcase == serial
           end
+          abort "The imported Apple Distribution certificate was not found in App Store Connect." unless certificate
 
-          dir = File.expand_path("~/Library/MobileDevice/Provisioning Profiles")
-          FileUtils.mkdir_p(dir)
-          path = File.join(dir, "#{profile["attributes"]["uuid"]}.mobileprovision")
-          File.binwrite(path, Base64.decode64(content))
-          puts "Installed: #{path}"
+          profile_name = "Listello TestFlight #{ENV.fetch("GITHUB_RUN_ID")}"
+          body = {
+            data: {
+              type: "profiles",
+              attributes: {name: profile_name, profileType: "IOS_APP_STORE"},
+              relationships: {
+                bundleId: {data: {type: "bundleIds", id: "ALQR4P268Z"}},
+                certificates: {data: [{type: "certificates", id: certificate.fetch("id")}]}
+              }
+            }
+          }
+          uri = URI("https://api.appstoreconnect.apple.com/v1/profiles")
+          request = Net::HTTP::Post.new(uri)
+          request["Authorization"] = "Bearer #{token}"
+          request["Content-Type"] = "application/json"
+          request.body = JSON.generate(body)
+          response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
+          abort "Profile creation failed (HTTP #{response.code}): #{response.body}" unless response.is_a?(Net::HTTPSuccess)
+          profile = JSON.parse(response.body).fetch("data")
+          File.binwrite(File.join(profile_dir, "Listello.mobileprovision"), Base64.decode64(profile.fetch("attributes").fetch("profileContent")))
+          File.write(File.join(profile_dir, "profile-id"), profile.fetch("id"))
+          File.write(File.join(profile_dir, "profile-name"), profile_name)
+          puts "Created App Store profile #{profile.fetch("id")} for this TestFlight build."
           RUBY
+
+          security cms -D -i "$PROFILE_DIR/Listello.mobileprovision" > "$PROFILE_DIR/profile.plist"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_DIR/profile.plist")"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_DIR/Listello.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "LISTELLO_PROFILE_NAME=$(cat "$PROFILE_DIR/profile-name")" >> "$GITHUB_ENV"
 
       - name: Archive and export signed IPA
         id: build
@@ -125,14 +149,17 @@ jobs:
             -derivedDataPath .build/DerivedData \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="AppStore Morrow Shared GitHub" \
+            PROVISIONING_PROFILE_SPECIFIER="$LISTELLO_PROFILE_NAME" \
             DEVELOPMENT_TEAM=6YYA8L76Y8 \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             | xcbeautify --renderer github-actions
 
+          cp Support/ExportOptions.plist "$RUNNER_TEMP/ListelloExportOptions.plist"
+          perl -0pi -e 's/AppStore Morrow Shared GitHub/$ENV{LISTELLO_PROFILE_NAME}/g' "$RUNNER_TEMP/ListelloExportOptions.plist"
+
           xcodebuild -exportArchive \
             -archivePath .build/Archives/Listello.xcarchive \
-            -exportOptionsPlist Support/ExportOptions.plist \
+            -exportOptionsPlist "$RUNNER_TEMP/ListelloExportOptions.plist" \
             -exportPath .build/Export \
             | xcbeautify --renderer github-actions
 
@@ -205,3 +232,42 @@ jobs:
           APP_STORE_APP_ID: "6809041904"
           BUILD_NUMBER: ${{ github.run_number }}
         run: ruby Support/check-testflight.rb
+
+      - name: Delete temporary App Store profile
+        if: always()
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          PROFILE_ID_FILE="$RUNNER_TEMP/listello-testflight-profile/profile-id"
+          [ -f "$PROFILE_ID_FILE" ] || exit 0
+          export LISTELLO_TEMP_PROFILE_ID="$(cat "$PROFILE_ID_FILE")"
+          ruby <<'RUBY'
+          require "base64"
+          require "json"
+          require "net/http"
+          require "openssl"
+          require "uri"
+
+          def base64url(value) = Base64.urlsafe_encode64(value).delete("=")
+          def fixed_width(value) = [value.to_i.to_s(16).rjust(64, "0")].pack("H*")
+
+          now = Time.now.to_i
+          header = base64url({alg: "ES256", kid: ENV.fetch("APPSTORE_KEY_ID"), typ: "JWT"}.to_json)
+          payload = base64url({iss: ENV.fetch("APPSTORE_ISSUER_ID"), iat: now, exp: now + 900, aud: "appstoreconnect-v1"}.to_json)
+          unsigned = "#{header}.#{payload}"
+          key = OpenSSL::PKey.read(ENV.fetch("APPSTORE_PRIVATE_KEY"))
+          asn1 = key.dsa_sign_asn1(OpenSSL::Digest::SHA256.digest(unsigned))
+          parts = OpenSSL::ASN1.decode(asn1).value
+          token = "#{unsigned}.#{base64url(parts.map { |part| fixed_width(part.value) }.join)}"
+
+          profile_id = ENV.fetch("LISTELLO_TEMP_PROFILE_ID")
+          uri = URI("https://api.appstoreconnect.apple.com/v1/profiles/#{profile_id}")
+          request = Net::HTTP::Delete.new(uri)
+          request["Authorization"] = "Bearer #{token}"
+          response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(request) }
+          abort "Profile cleanup failed (HTTP #{response.code}): #{response.body}" unless [204, 404].include?(response.code.to_i)
+          puts "Deleted temporary App Store profile #{profile_id}."
+          RUBY
